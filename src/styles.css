@@ -169,3 +169,10 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; 
 .pager { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 1rem; }
 .bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); }
+
+/* College Board markup includes screen-reader-only text (e.g. "blank" after each ______).
+   Keep it available to assistive tech but visually hidden. */
+.sr-only, .visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

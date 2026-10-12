@@ -29,6 +29,19 @@ domain under `public/data/` (plus an `index.json`). Those files are git-ignored 
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
+## AI tutor ("Ask about this question")
+
+After checking an answer, the feedback box has a chat where you can ask a specific doubt. It is
+served by a Cloudflare Pages Function (`functions/api/ask.js`) that holds the API key, so the key
+never reaches the browser. Set two secrets on the Pages project
+(**Settings → Variables and secrets**, type *Secret*, environment *Production*):
+
+- `ANTHROPIC_API_KEY` — from https://console.anthropic.com
+- `ACCESS_CODE` — any passcode you choose; the site asks for it once per device
+
+Without both, the chat shows an error and nothing is billed. Transcripts are saved per question in
+the browser alongside your notes.
+
 ## Deploying to Cloudflare (Workers static assets)
 
 `wrangler.jsonc` serves `dist/` as a static site. In Workers & Pages → Create → import this repo:

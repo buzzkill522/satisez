@@ -37,7 +37,7 @@ export default function App() {
   return (
     <HashRouter>
       <nav className="topnav">
-        <NavLink to="/" className="brand">SATisEZ</NavLink>
+        <NavLink to="/" className="brand">SATis<span className="brand-ez">EZ</span></NavLink>
         <div className="nav-links">
           <NavLink to="/practice">Practice</NavLink>
           <NavLink to="/browse">Browse</NavLink>
@@ -51,7 +51,7 @@ export default function App() {
           title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
         >
-          {theme === 'light' ? '🌙' : '☀️'}
+          {theme === 'light' ? <MoonIcon /> : <SunIcon />}
         </button>
         <AccountMenu />
       </nav>
@@ -90,3 +90,16 @@ function AccountMenu() {
     </div>
   )
 }
+
+/* Line icons in Amanat's style: 2.5px strokes, round caps and joins, currentColor. */
+const MoonIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+  </svg>
+)
+const SunIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+  </svg>
+)

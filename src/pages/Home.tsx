@@ -23,10 +23,24 @@ export default function Home() {
   }, [canLoad])
 
   return (
+    <>
+    {/* Amanat "stage" band: stays dark in both themes, so dark mode never meets a bright slab. */}
+    <section className="hero">
+      <div className="hero-inner">
+        <h1>
+          SAT practice that feels like <span className="gold-under">test day</span>.
+        </h1>
+        <p className="lead">
+          The College Board question bank with Bluebook-style timed modules, instant feedback with full explanations,
+          and a guide to every question type.
+        </p>
+        <div className="hero-actions">
+          <Link className="btn-primary" to="/practice">Start practising</Link>
+          <Link className="btn-secondary" to="/guide">Read the guide</Link>
+        </div>
+      </div>
+    </section>
     <div className="page home">
-      <h1>SATisEZ</h1>
-      <p className="lead">Every question from the College Board SAT question bank, with timers, instant feedback and progress tracking.</p>
-
       {!canLoad ? (
         <AccessNotice />
       ) : error ? (
@@ -42,32 +56,40 @@ export default function Home() {
         </div>
       )}
 
+      <h2>Pick up where you left off</h2>
       <div className="cards">
         <Link className="card" to="/practice?section=rw">
-          <h3>Practice Reading &amp; Writing</h3>
+          <span className="card-kicker">Practice</span>
+          <h3>Reading &amp; Writing</h3>
           <p>Pick domains, skills and difficulty. Instant feedback with full rationales.</p>
         </Link>
         <Link className="card" to="/practice?section=math">
-          <h3>Practice Math</h3>
+          <span className="card-kicker">Practice</span>
+          <h3>Math</h3>
           <p>Multiple choice and student-produced responses, checked automatically.</p>
         </Link>
         <Link className="card" to="/practice?section=rw&mode=timed">
-          <h3>Timed R&amp;W module</h3>
+          <span className="card-kicker">Timed</span>
+          <h3>Reading &amp; Writing module</h3>
           <p>{MODULE_SPEC.rw.questions} questions in {MODULE_SPEC.rw.minutes} minutes, scored at the end — just like test day.</p>
         </Link>
         <Link className="card" to="/practice?section=math&mode=timed">
-          <h3>Timed Math module</h3>
+          <span className="card-kicker">Timed</span>
+          <h3>Math module</h3>
           <p>{MODULE_SPEC.math.questions} questions in {MODULE_SPEC.math.minutes} minutes.</p>
         </Link>
         <Link className="card" to="/browse">
+          <span className="card-kicker">Review</span>
           <h3>Browse the bank</h3>
           <p>Search and filter every question; review flagged ones and your mistakes.</p>
         </Link>
         <Link className="card" to="/stats">
-          <h3>Progress</h3>
+          <span className="card-kicker">Review</span>
+          <h3>Your progress</h3>
           <p>Accuracy by skill and difficulty, weakest areas, timing and streaks.</p>
         </Link>
       </div>
     </div>
+    </>
   )
 }

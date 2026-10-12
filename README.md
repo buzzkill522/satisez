@@ -16,6 +16,13 @@ bank is missing:
 - **Progress** – accuracy by section / difficulty / skill, weakest skills, average time, day streak,
   recent history. Everything is stored in your browser; export/import as JSON.
 
+## Design
+
+The site uses the **Amanat design system** (Mukta + Nunito, a monochrome ink ramp with rupee-gold
+as the single accent, ledge buttons, 44px tap targets, light and dark themes). Its tokens are
+mapped onto the site's CSS variables at the top of `src/styles.css`, and the fonts are self-hosted
+in `public/fonts/`. The test-taking screen deliberately keeps the Bluebook look.
+
 ## Setup
 
 ```sh

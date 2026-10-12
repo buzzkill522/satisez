@@ -10,6 +10,8 @@ interface AdminUser {
   admin: boolean
   hasPassword?: boolean
   premiumActive?: boolean
+  answered?: number
+  lastActive?: number | null
   premium?: { until: string; source: string }
 }
 
@@ -70,6 +72,7 @@ export default function Admin() {
               <th>Joined</th>
               <th>Last sign-in</th>
               <th>Signs in with</th>
+              <th>Answered</th>
               <th>Premium</th>
             </tr>
           </thead>
@@ -88,6 +91,7 @@ export default function Admin() {
                 <td className="muted small">{fmt(u.createdAt)}</td>
                 <td className="muted small">{fmt(u.lastLogin)}</td>
                 <td className="muted small">{u.hasPassword ? 'Email + password' : 'Google'}</td>
+                <td className="small" title={u.lastActive ? `Last active ${fmt(new Date(u.lastActive).toISOString())}` : ''}>{u.answered ?? '—'}</td>
                 <td className="small">
                   {u.admin ? (
                     <span className="muted">Always</span>

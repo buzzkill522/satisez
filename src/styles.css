@@ -868,3 +868,21 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 :root[data-theme="dark"] .daily-upsell { background: var(--clay-100); }
 .row.tight { margin: 0; gap: .5rem; }
 .premium-badge { background: var(--gold-100); color: var(--gold-700); border-color: transparent; }
+
+/* ---------- Saved progress ---------- */
+.save-status { margin: -.25rem 0 1.25rem; font-size: 14px; color: var(--muted-ink); }
+.save-status.ok-status { color: var(--grow-600); font-weight: 600; }
+.save-status.warn { background: var(--sun-100); color: var(--ink); padding: .6rem .9rem; border-radius: var(--radius-xl); max-width: 720px; }
+.guide-progress { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; margin: 0 0 1.5rem; }
+.guide-meter { display: flex; align-items: center; gap: .75rem; min-width: 260px; }
+.guide-meter .bar { width: 160px; flex: none; }
+.card .guide-meter { margin-top: .75rem; }
+.skill-chip.done { border-color: var(--grow-500); background: var(--grow-100); }
+.skill-chip.started { border-style: dashed; }
+.chip-check { color: var(--grow-600); font-weight: 900; }
+.g-done { display: flex; align-items: center; gap: .75rem; margin: 2rem 0 1rem; flex-wrap: wrap; }
+.g-done-label { font-family: var(--font-display); font-weight: 800; color: var(--grow-600); }
+.g-sample-last { font-size: 14px; font-weight: 600; margin: -.25rem 0 .75rem; }
+.g-sample-last.is-ok { color: var(--grow-600); }
+.g-sample-last.is-bad { color: var(--alert-600); }
+.guide-meter .bar, .guide-meter .bar-fill { display: block; }

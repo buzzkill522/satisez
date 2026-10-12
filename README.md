@@ -52,6 +52,20 @@ Two methods, both at `/#/signin`:
 
 `ADMIN_EMAILS` (comma-separated) marks admins; they see the **Admin** page listing every account.
 
+## Saved progress (accounts)
+
+For signed-in users, every answer, flag, note, tutor chat and study-guide step (pages opened,
+sample-question results, "Mark as done") is saved to their account in **Cloudflare D1** and
+follows them to any device. Progress made before signing in is uploaded on first sign-in.
+Signing out clears the browser copy so the next person on that computer starts fresh.
+Visitors without an account keep progress in their browser only.
+
+Setup (once): Cloudflare dashboard → **Storage & Databases → D1 → Create database** (any name,
+e.g. `satisez`). Then the Pages project → **Settings → Bindings → Add → D1 database**, variable
+name `DB`, pick that database, and redeploy. The tables are created automatically on first use.
+D1's free tier allows 100,000 row writes a day (KV allows only 1,000, which is why progress
+doesn't live in KV).
+
 ## Premium and payments
 
 Free visitors get **today's five questions** (the same five for everyone, picked from the date by

@@ -12,6 +12,8 @@ export const onRequestGet = ({ request, env, data }) => {
     email: emailAuthReady(env),
     missing,
     ai: Boolean(env.AI),
+    // Whether progress is saved to accounts (D1 binding `DB`).
+    sync: Boolean(env.DB),
     country: countryOf(request),
   })
 }

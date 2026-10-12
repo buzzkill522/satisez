@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { RW_DOMAINS, RW_FACTS, RW_SKILLS, type GuideDomain, type GuideSkill } from '../guide/rw'
 import { useAuth } from '../lib/auth'
 import { loadSection } from '../lib/data'
-import { store } from '../lib/store'
+import { store, useStore, type GuideProgress } from '../lib/store'
 import { QuestionView } from '../components/QuestionView'
 import type { Difficulty, Question } from '../lib/types'
 
@@ -11,6 +11,8 @@ const domainClass = (code: string) => `dom-${code.toLowerCase()}`
 
 /** /guide — section picker. */
 export function GuideIndex() {
+  const { guide } = useStore()
+  const done = RW_SKILLS.filter((s) => guide[s.slug]?.done).length
   return (
     <div className="page guide">
       <h1>Study guide</h1>
@@ -18,7 +20,8 @@ export function GuideIndex() {
       <div className="cards">
         <Link className="card" to="/guide/rw">
           <h3>Reading and Writing</h3>
-          <p>2 modules · 54 questions · 64 minutes. The order questions come in, and a page for each of the 11 question types.</p>
+          <p>2 modules · 54 questions · 64 minutes. The order questions come in, and a page for each of the {RW_SKILLS.length} question types.</p>
+          <GuideMeter done={done} total={RW_SKILLS.length} />
         </Link>
         <div className="card disabled" aria-disabled="true">
           <h3>Math</h3>
@@ -32,10 +35,22 @@ export function GuideIndex() {
 /** /guide/rw — how the Reading and Writing section comes on test day. */
 export function GuideRW() {
   const f = RW_FACTS
+  const { guide } = useStore()
+  const done = RW_SKILLS.filter((s) => guide[s.slug]?.done).length
+  const nextUp = RW_SKILLS.find((s) => !guide[s.slug]?.done)
   return (
     <div className="page guide">
       <Crumbs items={[['Guide', '/guide'], ['Reading and Writing']]} />
       <h1>How Reading and Writing comes on the SAT</h1>
+
+      <div className="guide-progress">
+        <GuideMeter done={done} total={RW_SKILLS.length} />
+        {nextUp && (
+          <Link className="glance-link" to={`/guide/rw/${nextUp.slug}`}>
+            {done ? 'Continue with' : 'Start with'} {nextUp.name} ›
+          </Link>
+        )}
+      </div>
 
       <div className="stats-row">
         <Tile value={`${f.modules}`} label="modules" />
@@ -94,12 +109,16 @@ export function GuideRW() {
             </div>
             <p className="mm-blurb">{d.blurb}</p>
             <div className="mm-skills">
-              {d.skills.map((s) => (
-                <Link key={s.slug} className="skill-chip" to={`/guide/rw/${s.slug}`}>
-                  <span>{s.name}</span>
-                  <span className="chip-arrow" aria-hidden="true">›</span>
-                </Link>
-              ))}
+              {d.skills.map((s) => {
+                const st = skillState(guide[s.slug])
+                return (
+                  <Link key={s.slug} className={`skill-chip ${st}`} to={`/guide/rw/${s.slug}`} title={STATE_LABEL[st]}>
+                    {st === 'done' && <span className="chip-check" aria-label="Done">✓</span>}
+                    <span>{s.name}</span>
+                    <span className="chip-arrow" aria-hidden="true">›</span>
+                  </Link>
+                )
+              })}
             </div>
           </li>
         ))}
@@ -135,8 +154,16 @@ function ModuleStrip() {
 export function GuideSkillPage() {
   const { slug } = useParams()
   const { user } = useAuth()
+  const { guide } = useStore()
   const isAdmin = Boolean(user?.admin)
   const i = RW_SKILLS.findIndex((s) => s.slug === slug)
+  const progress = slug ? guide[slug] : undefined
+
+  // Remember the first visit to each page.
+  useEffect(() => {
+    if (slug && i !== -1 && !store.get().guide[slug]?.opened) store.updateGuide(slug, { opened: Date.now() })
+  }, [slug, i])
+
   if (i === -1)
     return (
       <div className="page guide">
@@ -218,6 +245,19 @@ export function GuideSkillPage() {
         blurb="Run them in order before you look at the choices."
       />
 
+      <div className="g-done">
+        {progress?.done ? (
+          <>
+            <span className="g-done-label">✓ Marked done {new Date(progress.done).toLocaleDateString()}</span>
+            <button className="link" onClick={() => store.updateGuide(s.slug, { done: undefined })}>Undo</button>
+          </>
+        ) : (
+          <button className="primary" onClick={() => store.updateGuide(s.slug, { done: Date.now() })}>
+            Mark {s.name} as done
+          </button>
+        )}
+      </div>
+
       <div className="g-actions">
         <Link className="primary-link" to={`/practice?section=rw&domain=${d.code}`}>
           Practice {d.name} questions
@@ -228,6 +268,20 @@ export function GuideSkillPage() {
         {prev ? <Link to={`/guide/rw/${prev.slug}`}>‹ {prev.name}</Link> : <span />}
         {next ? <Link to={`/guide/rw/${next.slug}`}>{next.name} ›</Link> : <Link to="/guide/rw">Back to overview ›</Link>}
       </nav>
+    </div>
+  )
+}
+
+type SkillState = 'done' | 'started' | 'new'
+const skillState = (p?: GuideProgress): SkillState => (p?.done ? 'done' : p?.opened ? 'started' : 'new')
+const STATE_LABEL: Record<SkillState, string> = { done: 'Done', started: 'Started', new: 'Not started' }
+
+/** "4 of 11 question types done" with a bar. */
+function GuideMeter({ done, total }: { done: number; total: number }) {
+  return (
+    <div className="guide-meter">
+      <span className="bar"><span className="bar-fill" style={{ width: `${(100 * done) / total}%` }} /></span>
+      <span className="small"><b>{done}</b> of {total} question types done</span>
     </div>
   )
 }
@@ -287,6 +341,8 @@ function Crumbs({ items }: { items: [string, string?][] }) {
  */
 function SampleQuestion({ skill, which, difficulty, title, blurb }: { skill: GuideSkill; which: 'before' | 'after'; difficulty: Difficulty; title: string; blurb: string }) {
   const [q, setQ] = useState<Question | null | undefined>(undefined)
+  const { guide } = useStore()
+  const last = guide[skill.slug]?.[which]
   const wantedId = skill.samples?.[which]
   const hasContent = skill.approach.length > 0
 
@@ -319,6 +375,11 @@ function SampleQuestion({ skill, which, difficulty, title, blurb }: { skill: Gui
         )}
       </div>
       <p className="muted">{blurb}</p>
+      {q && last?.qid === q.id && (
+        <p className={`g-sample-last ${last.correct ? 'is-ok' : 'is-bad'}`}>
+          Last time ({new Date(last.at).toLocaleDateString()}): {last.correct ? 'you got it right' : 'you missed it'}.
+        </p>
+      )}
       {q === undefined ? (
         <p className="muted small">Loading the question…</p>
       ) : (
@@ -327,7 +388,11 @@ function SampleQuestion({ skill, which, difficulty, title, blurb }: { skill: Gui
             question={q}
             number={which === 'before' ? 1 : 2}
             instantFeedback
-            onAnswer={(answer, correct) => store.recordAttempt({ qid: q.id, answer, correct, seconds: 0, at: Date.now() })}
+            onAnswer={(answer, correct) => {
+              const at = Date.now()
+              store.recordAttempt({ qid: q.id, answer, correct, seconds: 0, at })
+              store.updateGuide(skill.slug, { [which]: { qid: q.id, correct, at } })
+            }}
           />
         </div>
       )}

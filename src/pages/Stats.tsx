@@ -5,7 +5,8 @@ import { loadAll } from '../lib/data'
 import { latestByQuestion, store, useStore } from '../lib/store'
 import { formatTime } from '../components/Timer'
 import { Stat } from './Practice'
-import { usePremium } from '../lib/auth'
+import { useAuth, usePremium } from '../lib/auth'
+import { pushAll, resetEverywhere, useSyncStatus } from '../lib/sync'
 import { Link } from 'react-router-dom'
 
 interface Bucket {
@@ -22,6 +23,7 @@ export default function Stats() {
   const [all, setAll] = useState<Question[]>([])
   const [error, setError] = useState('')
   const { loading, premium } = usePremium()
+  const { user } = useAuth()
 
   // The per-skill breakdown needs the whole bank, which only Premium can load.
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function Stats() {
     f.text().then((t) => {
       try {
         store.import(t)
+        pushAll()
       } catch {
         alert('Invalid progress file')
       }
@@ -81,6 +84,7 @@ export default function Stats() {
   return (
     <div className="page">
       <h1>Progress</h1>
+      <SaveStatus />
       {error && <p className="error">{error}</p>}
       <div className="stats-row">
         <Stat label="Questions answered" value={latest.size.toLocaleString()} />
@@ -151,13 +155,35 @@ export default function Stats() {
         <button
           className="danger"
           onClick={() => {
-            if (confirm('Erase all progress, flags and notes?')) store.reset()
+            if (confirm(user ? 'Erase all progress, flags, notes and guide progress, on this device and in your account?' : 'Erase all progress, flags and notes?'))
+              resetEverywhere().catch((e) => alert(e.message))
           }}
         >
           Reset everything
         </button>
       </div>
     </div>
+  )
+}
+
+/** Where progress is kept: in the account (with last-saved time) or only in this browser. */
+function SaveStatus() {
+  const { user, configured } = useAuth()
+  const { status, savedAt } = useSyncStatus()
+  if (!configured) return null
+  if (!user)
+    return (
+      <p className="save-status warn">
+        Your progress is only kept in this browser. <Link to="/signin?next=/stats">Sign in</Link> to save it to an account and pick it up on any device.
+      </p>
+    )
+  if (status === 'off') return <p className="save-status warn">Progress is kept in this browser; saving to accounts isn't switched on yet.</p>
+  if (status === 'error') return <p className="save-status warn">Couldn't reach the server to save your progress. It's kept here and will save when you're back online.</p>
+  if (status === 'syncing' && !savedAt) return <p className="save-status">Saving to {user.email}…</p>
+  return (
+    <p className="save-status ok-status">
+      ✓ Saved to your account ({user.email}){savedAt ? ` · last saved ${new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
+    </p>
   )
 }
 

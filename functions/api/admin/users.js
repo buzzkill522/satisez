@@ -2,6 +2,7 @@
 // POST /api/admin/users {email, access} — switch question-bank access on or off
 
 import { getUser, grantPremium, isAdmin, isPremium, json, putUser } from '../../../server/auth.js'
+import { answeredCounts, ensureSchema } from '../../../server/progress.js'
 
 function requireAdmin(data) {
   if (!data.user) return json({ error: 'Sign in first.' }, 401)
@@ -21,7 +22,13 @@ export async function onRequestGet({ env, data }) {
     cursor = page.list_complete ? undefined : page.cursor
   } while (cursor)
   users.sort((a, b) => (b.lastLogin || '').localeCompare(a.lastLogin || ''))
-  return json({ users })
+  // Saved progress per account (when the DB binding is connected).
+  if (env.DB) {
+    await ensureSchema(env.DB)
+    const counts = await answeredCounts(env.DB)
+    for (const u of users) Object.assign(u, counts.get(u.email) ?? { answered: 0, lastActive: null })
+  }
+  return json({ users, sync: Boolean(env.DB) })
 }
 
 export async function onRequestPost({ request, env, data }) {

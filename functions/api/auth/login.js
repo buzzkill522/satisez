@@ -1,6 +1,6 @@
 // GET /api/auth/login — start "Sign in with Google".
 
-import { cookie, json, missingConfig } from '../../../server/auth.js'
+import { cookie, json, missingConfig, setting } from '../../../server/auth.js'
 
 export async function onRequestGet({ request, env }) {
   const missing = missingConfig(env)
@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   const origin = new URL(request.url).origin
   const state = crypto.randomUUID()
   const params = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID,
+    client_id: setting(env, 'GOOGLE_CLIENT_ID'),
     redirect_uri: `${origin}/api/auth/callback`,
     response_type: 'code',
     scope: 'openid email profile',

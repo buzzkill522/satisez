@@ -11,6 +11,9 @@
 //   USERS                                   — KV namespace binding
 
 export const SESSION_COOKIE = 'sid'
+
+/** A text setting with stray spaces/newlines removed (pasting on phones often adds them). */
+export const setting = (env, name) => (typeof env[name] === 'string' ? env[name].trim() : env[name])
 const SESSION_DAYS = 30
 
 const enc = new TextEncoder()
@@ -67,7 +70,7 @@ export const newSessionPayload = (user) => ({
 })
 
 export function isAdmin(env, email) {
-  return (env.ADMIN_EMAILS || '')
+  return (setting(env, 'ADMIN_EMAILS') || '')
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean)
@@ -85,7 +88,7 @@ export async function putUser(env, user) {
 
 /** Who is making this request, with role and access resolved. Null when signed out. */
 export async function currentUser(request, env) {
-  const session = await verifySession(getCookie(request, SESSION_COOKIE), env.SESSION_SECRET)
+  const session = await verifySession(getCookie(request, SESSION_COOKIE), setting(env, 'SESSION_SECRET'))
   if (!session) return null
   const admin = isAdmin(env, session.email)
   const record = admin ? null : await getUser(env, session.email)
@@ -107,5 +110,5 @@ export const json = (data, status = 200, headers = {}) =>
 
 /** Which required settings are missing, so setup mistakes produce a clear message. */
 export function missingConfig(env) {
-  return ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET', 'ADMIN_EMAILS', 'USERS'].filter((k) => !env[k])
+  return ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET', 'ADMIN_EMAILS', 'USERS'].filter((k) => !setting(env, k))
 }

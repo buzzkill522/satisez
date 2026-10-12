@@ -1,6 +1,6 @@
 // GET /api/auth/callback — Google redirects here after the user picks an account.
 
-import { cookie, getCookie, getUser, isAdmin, json, newSessionPayload, putUser, sessionCookie, signSession } from '../../../server/auth.js'
+import { cookie, getCookie, setting, getUser, isAdmin, json, newSessionPayload, putUser, sessionCookie, signSession } from '../../../server/auth.js'
 
 function decodeJwtPayload(jwt) {
   const part = jwt.split('.')[1]
@@ -25,21 +25,30 @@ export async function onRequestGet({ request, env }) {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
+      client_id: setting(env, 'GOOGLE_CLIENT_ID'),
+      client_secret: setting(env, 'GOOGLE_CLIENT_SECRET'),
       redirect_uri: `${url.origin}/api/auth/callback`,
       grant_type: 'authorization_code',
     }),
   })
   const tokens = await tokenRes.json().catch(() => ({}))
   if (!tokenRes.ok || !tokens.id_token) {
+    if (tokens.error === 'invalid_client') {
+      return json({
+        error:
+          'Google rejected the client secret. In Cloudflare, check GOOGLE_CLIENT_SECRET is the secret from the same Google OAuth client as GOOGLE_CLIENT_ID (not the ID itself), then retry the deployment.',
+      }, 502)
+    }
+    if (tokens.error === 'redirect_uri_mismatch') {
+      return json({ error: `Add ${url.origin}/api/auth/callback to the OAuth client's Authorized redirect URIs in Google Cloud.` }, 502)
+    }
     return json({ error: `Google sign-in failed: ${tokens.error_description || tokens.error || tokenRes.status}` }, 502)
   }
 
   // The ID token came straight from Google's token endpoint over TLS, using our client secret,
   // so its contents can be trusted without re-verifying the signature (per Google's docs).
   const profile = decodeJwtPayload(tokens.id_token)
-  if (profile.aud !== env.GOOGLE_CLIENT_ID || !profile.email || !profile.email_verified) {
+  if (profile.aud !== setting(env, 'GOOGLE_CLIENT_ID') || !profile.email || !profile.email_verified) {
     return json({ error: 'Google did not return a verified email address.' }, 403)
   }
 
@@ -56,7 +65,7 @@ export async function onRequestGet({ request, env }) {
   }
   await putUser(env, user)
 
-  const token = await signSession(newSessionPayload(user), env.SESSION_SECRET)
+  const token = await signSession(newSessionPayload(user), setting(env, 'SESSION_SECRET'))
   const headers = new Headers({ location: '/' })
   headers.append('set-cookie', sessionCookie(token))
   headers.append('set-cookie', clearState)

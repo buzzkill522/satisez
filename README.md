@@ -29,11 +29,24 @@ npm run dev       # http://localhost:5173
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
-## Deploying
+## Deploying to Cloudflare Pages
 
-`npm run build` produces a static site in `dist/` (routing uses hash URLs, so it works from any
-static host or subfolder). Copy `public/data/*.json` alongside it if your host doesn't include
-`public/` automatically — Vite does.
+The question data is not committed, so the Pages build downloads it itself via `build:pages`.
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick this repo.
+2. Build settings:
+   - **Production branch:** `main` (or whichever branch you merge to)
+   - **Build command:** `npm run build:pages`
+   - **Build output directory:** `dist`
+   - Node version is picked up from `.nvmrc` (22).
+3. Save and deploy. The first build takes a few minutes while it fetches the bank; later builds
+   re-fetch too (there's no cache between Pages builds), which is fine for occasional deploys.
+
+Routing uses hash URLs, so no `_redirects` file is needed. Progress is stored in each browser's
+localStorage, so it is per-device; use Export/Import on the Progress page to move it.
+
+`npm run build` alone (without the fetch) works for any static host if you already have
+`public/data/*.json` locally.
 
 ## Layout
 

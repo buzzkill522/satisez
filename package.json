@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "fetch": "node scripts/fetch-questions.mjs"
+    "fetch": "node scripts/fetch-questions.mjs",
+    "build:pages": "npm run fetch && npm run build"
   },
   "dependencies": {
     "react": "^18.3.1",

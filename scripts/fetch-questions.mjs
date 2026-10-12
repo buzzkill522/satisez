@@ -135,6 +135,7 @@ async function main() {
     }
     await Promise.all(Array.from({ length: 8 }, worker))
 
+    if (results.length === 0) throw new Error(`No ${test.name} questions downloaded — API unreachable or its format changed`)
     results.sort((a, b) => a.id.localeCompare(b.id))
     await writeFile(outPath, JSON.stringify(results))
     console.log(`  wrote ${results.length} → public/data/${test.key}.json`)

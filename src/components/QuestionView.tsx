@@ -98,7 +98,8 @@ export function QuestionView({ question: q, instantFeedback, revealed, onAnswer,
         />
       )}
 
-      <div className={`q-body ${q.stimulus ? 'two-col' : ''}`}>
+      {/* R&W passages sit beside the question (like Bluebook); math tables/figures sit above it. */}
+      <div className={`q-body ${q.stimulus ? (q.section === 'rw' ? 'two-col' : 'stacked') : ''}`}>
         {q.stimulus && <div className="stimulus html" dangerouslySetInnerHTML={{ __html: q.stimulus }} />}
         <div className="prompt">
           <div className="stem html" dangerouslySetInnerHTML={{ __html: q.stem }} />

@@ -102,6 +102,8 @@ async function fetchDetail(meta, tries = 3) {
   return null
 }
 
+let loggedIbnShape = false
+
 /** Normalise both API shapes into the format the site consumes. */
 function normalise(meta, detail, testKey) {
   if (!detail) return null
@@ -135,18 +137,27 @@ function normalise(meta, detail, testKey) {
       rationale: detail.rationale ?? '',
     }
   }
-  // "ibn" (disclosed paper-style) format: an array with one item
+  // "ibn" (disclosed paper-style) format: an array with one item. Tables, graphs and
+  // passages are in the item's `body`; the question itself is in `prompt`.
   const item = Array.isArray(detail) ? detail[0] : detail
   const q = item?.item?.[0] ?? item
-  const choices = q?.answer?.choices ?? {}
+  if (!loggedIbnShape) {
+    loggedIbnShape = true
+    console.log(`  (ibn item fields: ${Object.keys(q ?? {}).join(', ')}; answer fields: ${Object.keys(q?.answer ?? {}).join(', ')})`)
+  }
+  const choices = Object.entries(q?.answer?.choices ?? {})
+  const correct = q?.answer?.correct_choice ?? q?.answer?.correct_answer ?? ''
   return {
     ...base,
-    type: q?.answer?.style === 'SPR' ? 'spr' : 'mcq',
-    stimulus: q?.passage?.body ?? '',
-    stem: q?.prompt ?? '',
-    choices: Object.entries(choices).map(([k, v]) => ({ key: k.toUpperCase(), content: v.body })),
-    answers: (q?.answer?.correct_choice ?? '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean),
-    rationale: q?.answer?.rationale ?? '',
+    type: choices.length ? 'mcq' : 'spr',
+    stimulus: q?.body ?? q?.passage?.body ?? q?.stimulus ?? '',
+    stem: q?.prompt ?? q?.stem ?? '',
+    choices: choices.map(([k, v]) => ({ key: k.toUpperCase(), content: v?.body ?? v })),
+    answers: (Array.isArray(correct) ? correct : String(correct).split(','))
+      .map((s) => String(s).trim())
+      .filter(Boolean)
+      .map((s) => (choices.length ? s.toUpperCase() : s)),
+    rationale: q?.answer?.rationale ?? q?.rationale ?? '',
   }
 }
 

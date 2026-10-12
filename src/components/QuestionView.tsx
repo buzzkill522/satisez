@@ -192,15 +192,14 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
               {DIFFICULTY_NAMES[q.difficulty]} · {q.domainName} · {q.skillName}
             </div>
             {isCorrect || whyOpen ? (
-              <>
-                <div className="bb-rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
-                <TutorChat question={q} studentAnswer={answer} autoOpen={whyOpen && Boolean(answer.trim())} />
-              </>
+              <div className="bb-rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
             ) : (
               <button className="bb-why" onClick={() => setWhyOpen(true)}>
                 {answer.trim() ? 'Want to know why it’s wrong?' : 'Want to see the explanation?'}
               </button>
             )}
+            {/* The tutor is always there; after a wrong answer it opens straight away. */}
+            <TutorChat question={q} studentAnswer={answer} autoOpen={!isCorrect && Boolean(answer.trim())} />
             <textarea
               className="bb-note"
               placeholder="Add a note to yourself about this question…"

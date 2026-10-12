@@ -4,15 +4,13 @@
 // up to a daily allowance — no API key or card needed. Requires a Workers AI binding named
 // `AI` on the Pages project (Settings → Bindings → Add → Workers AI).
 //
-// Signed-in users only (the middleware resolves the session), so strangers can't use up the
-// daily free allowance.
-//
 // Request body: { question: {...}, messages: [{ role: 'user'|'assistant', content: string }] }
 // Response:     { reply: string }  or  { error: string }
 
-// Small, fast model: each exchange uses a tiny slice of the free daily allowance.
-// Override with an AI_MODEL variable to try another Workers AI text model.
-const DEFAULT_MODEL = '@cf/meta/llama-3.1-8b-instruct'
+// Small, fast models: each exchange uses a tiny slice of the free daily allowance. Tried in order,
+// so if Cloudflare retires one (as it did @cf/meta/llama-3.1-8b-instruct on 30 May 2026) the next
+// takes over. Set an AI_MODEL variable to put another Workers AI text model first.
+const MODELS = ['@cf/zai-org/glm-4.7-flash', '@cf/google/gemma-4-26b-a4b-it', '@cf/meta/llama-3.1-8b-instruct-fp8']
 const MAX_TURNS = 10
 const MAX_CHARS = 1000
 
@@ -74,25 +72,48 @@ export async function onRequestPost({ request, env }) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_CHARS) }))
   if (!history.length || history[0].role !== 'user') return json({ error: 'Conversation must start with the student.' }, 400)
 
-  try {
-    const result = await env.AI.run(env.AI_MODEL || DEFAULT_MODEL, {
-      messages: [
-        { role: 'system', content: `${SYSTEM}\n\n=== The question ===\n${questionContext(question)}` },
-        ...history,
-      ],
-      max_tokens: 400,
-      temperature: 0.3,
-    })
-    const reply = (result?.response ?? '').trim()
-    return json({ reply: reply || 'No answer came back. Try asking again.' })
-  } catch (err) {
-    const msg = String(err?.message ?? err)
-    // Workers AI reports an exhausted free allowance as a quota / capacity error.
-    if (/quota|limit|neuron|429|capacity/i.test(msg)) {
-      return json({ error: "Today's free AI allowance is used up. It resets daily — try again tomorrow." }, 429)
+  const messagesIn = [
+    { role: 'system', content: `${SYSTEM}\n\n=== The question ===\n${questionContext(question)}` },
+    ...history,
+  ]
+  const models = [...new Set([setting(env.AI_MODEL), ...MODELS].filter(Boolean))]
+  let lastError = ''
+  for (const model of models) {
+    try {
+      // Generous max_tokens: some newer models think before answering and count that too.
+      const result = await env.AI.run(model, { messages: messagesIn, max_tokens: 1200, temperature: 0.3 })
+      const reply = replyText(result)
+      if (reply) return json({ reply })
+      lastError = `${model} returned no text`
+    } catch (err) {
+      const msg = String(err?.message ?? err)
+      // Workers AI reports an exhausted free allowance as a quota / capacity error.
+      if (/quota|neuron|429|daily (free )?allocation/i.test(msg)) {
+        return json({ error: "Today's free AI allowance is used up. It resets daily — try again tomorrow." }, 429)
+      }
+      lastError = `${model}: ${msg}`
     }
-    return json({ error: `Workers AI error: ${msg}` }, 502)
   }
+  return json({ error: `The tutor couldn't answer right now. Try again in a moment. (${lastError})` }, 502)
+}
+
+const setting = (v) => (typeof v === 'string' ? v.trim() : '')
+
+/**
+ * Workers AI models answer in two shapes: older ones as { response }, newer ones in the OpenAI
+ * format { choices: [{ message: { content } }] }. Thinking models may also wrap their reasoning
+ * in <think>…</think>; only the final answer is shown.
+ */
+export function replyText(result) {
+  const raw =
+    (typeof result === 'string' && result) ||
+    (typeof result?.response === 'string' && result.response) ||
+    result?.choices?.[0]?.message?.content ||
+    result?.choices?.[0]?.text ||
+    result?.output_text ||
+    ''
+  const text = Array.isArray(raw) ? raw.map((p) => p?.text ?? '').join('') : String(raw)
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^[\s\S]*<\/think>/, '').trim()
 }
 
 export const onRequest = ({ request }) =>

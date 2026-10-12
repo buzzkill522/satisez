@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { loadAll } from '../lib/data'
 import { latestByQuestion, useStore } from '../lib/store'
 import { MODULE_SPEC } from '../lib/types'
+import { useAuth } from '../lib/auth'
+import { AccessNotice } from '../components/AuthGate'
 
 export default function Home() {
   const [counts, setCounts] = useState<{ rw: number; math: number } | null>(null)
@@ -10,18 +12,24 @@ export default function Home() {
   const { attempts } = useStore()
   const done = latestByQuestion(attempts).size
 
+  const { user } = useAuth()
+  const canLoad = Boolean(user?.access)
+
   useEffect(() => {
+    if (!canLoad) return
     loadAll()
       .then((qs) => setCounts({ rw: qs.filter((q) => q.section === 'rw').length, math: qs.filter((q) => q.section === 'math').length }))
       .catch((e) => setError(e.message))
-  }, [])
+  }, [canLoad])
 
   return (
     <div className="page home">
       <h1>SATisEZ</h1>
       <p className="lead">Every question from the College Board SAT question bank, with timers, instant feedback and progress tracking.</p>
 
-      {error ? (
+      {!canLoad ? (
+        <AccessNotice />
+      ) : error ? (
         <div className="error-box">
           <b>No question data found.</b>
           <p>Run <code>npm run fetch</code> once to download the question bank, then reload.</p>

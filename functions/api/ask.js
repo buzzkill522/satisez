@@ -4,8 +4,8 @@
 // up to a daily allowance — no API key or card needed. Requires a Workers AI binding named
 // `AI` on the Pages project (Settings → Bindings → Add → Workers AI).
 //
-// Optional: set ACCESS_CODE (Settings → Variables and secrets) to require a passcode, so
-// strangers who find the URL can't use up the daily free allowance.
+// Signed-in users only (the middleware resolves the session), so strangers can't use up the
+// daily free allowance.
 //
 // Request body: { question: {...}, messages: [{ role: 'user'|'assistant', content: string }] }
 // Response:     { reply: string }  or  { error: string }
@@ -54,12 +54,10 @@ function questionContext(q) {
   return parts.join('\n\n')
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, data }) {
+  if (!data.user) return json({ error: 'Sign in to use the tutor.' }, 401)
   if (!env.AI) {
     return json({ error: 'The Workers AI binding is missing. In Cloudflare: Pages project → Settings → Bindings → Add → Workers AI, name it AI, then redeploy.' }, 500)
-  }
-  if (env.ACCESS_CODE && request.headers.get('x-access-code') !== env.ACCESS_CODE) {
-    return json({ error: 'Wrong passcode.' }, 401)
   }
 
   let body

@@ -2,24 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { Question } from '../lib/types'
 import { store, useStore, type ChatMessage } from '../lib/store'
 
-const CODE_KEY = 'satisez.accessCode'
-
-function readCode() {
-  try {
-    return localStorage.getItem(CODE_KEY) ?? ''
-  } catch {
-    return ''
-  }
-}
-function saveCode(code: string) {
-  try {
-    if (code) localStorage.setItem(CODE_KEY, code)
-    else localStorage.removeItem(CODE_KEY)
-  } catch {
-    /* storage unavailable — the code just won't persist */
-  }
-}
-
 interface Props {
   question: Question
   studentAnswer: string
@@ -35,8 +17,6 @@ export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [code, setCode] = useState(readCode)
-  const [needCode, setNeedCode] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,15 +34,12 @@ export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}api/ask`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-access-code': code },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ question: { ...q, studentAnswer }, messages: next }),
       })
       const data = (await res.json().catch(() => ({}))) as { reply?: string; error?: string }
       if (res.status === 401) {
-        saveCode('')
-        setCode('')
-        setNeedCode(true)
-        setError(code ? 'That passcode was rejected. Enter it again.' : 'This tutor needs a passcode.')
+        setError('Your sign-in has expired. Reload the page and sign in again.')
         store.setChat(q.id, chat) // drop the unsent message; it's still in the box
         setDraft(text)
         return
@@ -93,27 +70,6 @@ export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
         <span>Ask about this question</span>
         <button className="bb-nav-close" aria-label="Close" onClick={() => setOpen(false)}>×</button>
       </div>
-
-      {needCode && (
-        <form
-          className="bb-tutor-code"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const c = (new FormData(e.currentTarget).get('code') as string).trim()
-            if (!c) return
-            saveCode(c)
-            setCode(c)
-            setNeedCode(false)
-            setError('')
-          }}
-        >
-          <label>
-            Passcode <span className="muted small">(set once; it's remembered on this device)</span>
-            <input name="code" type="password" autoComplete="off" autoFocus />
-          </label>
-          <button className="bb-check" type="submit">Save</button>
-        </form>
-      )}
 
       <div className="bb-tutor-log">
         {chat.length === 0 && !busy && (

@@ -29,6 +29,27 @@ domain under `public/data/` (plus an `index.json`). Those files are git-ignored 
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
+## Accounts (Sign in with Google)
+
+Anyone can create an account with Google. The College Board questions are locked on the server
+(`functions/_middleware.js` guards `/data/*`): only admins, and users an admin switches on from the
+**Admin** page, can load them. New users see a "waiting for access" message.
+
+Setup, once:
+
+1. **Google OAuth client** — https://console.cloud.google.com → create a project →
+   *APIs & Services → OAuth consent screen*: app name, support email, audience **External**, then
+   **Publish app**. Then *Credentials → Create credentials → OAuth client ID → Web application*,
+   authorized redirect URI `https://satisez.pages.dev/api/auth/callback`. Copy the client ID and secret.
+2. **Cloudflare KV** — *Workers & Pages → KV → Create namespace* (e.g. `satisez-users`), then in the
+   Pages project *Settings → Bindings → Add → KV namespace*, variable name `USERS`.
+3. **Pages variables** (*Settings → Variables and secrets*, Production):
+   - `GOOGLE_CLIENT_ID` — from step 1
+   - `GOOGLE_CLIENT_SECRET` — from step 1 (type *Secret*)
+   - `SESSION_SECRET` — a long random string (type *Secret*); changing it signs everyone out
+   - `ADMIN_EMAILS` — your Gmail address (comma-separate to add more admins)
+4. Redeploy.
+
 ## AI tutor ("Ask about this question")
 
 After checking an answer, the feedback box has a chat where you can ask a specific doubt. It runs
@@ -36,9 +57,9 @@ on **Cloudflare Workers AI**, which is free up to a daily allowance — no API k
 served by a Pages Function (`functions/api/ask.js`). Setup, once:
 
 1. Pages project → **Settings → Bindings → Add → Workers AI**, variable name `AI`.
-2. Optional: **Settings → Variables and secrets** → add `ACCESS_CODE` (any passcode) so strangers
-   who find the URL can't use up the daily allowance. The site asks for it once per device.
-3. Redeploy.
+2. Redeploy.
+
+Only signed-in users can use the tutor, so strangers can't use up the daily allowance.
 
 The default model is `@cf/meta/llama-3.1-8b-instruct` (small and cheap on the allowance); set an
 `AI_MODEL` variable to try another Workers AI text model. Transcripts are saved per question in

@@ -9,12 +9,12 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
-const MAX_TURNS = 20
-const MAX_CHARS = 2000
+const MAX_TURNS = 10
+const MAX_CHARS = 1000
 
 const SYSTEM = `You are a patient SAT tutor helping one student understand a question they just answered.
 You are given the question, the answer choices, which one the student picked, the correct answer, and College Board's official rationale.
-Answer the student's specific doubt directly and concisely. Explain the reasoning, not just the answer.
+Answer the student's specific doubt directly and concisely — usually 2–5 sentences, never more than a short paragraph or a 3-step list. Explain the reasoning, not just the answer.
 When a wrong choice is tempting, say why it is wrong. For math, show the key steps. For reading and writing, point to the exact words in the passage that decide it.
 Stay on this question and the skill it tests; if the student asks about something unrelated to the SAT, steer back briefly.
 Use plain text. No markdown headings or tables; short paragraphs or a short numbered list are fine.`
@@ -73,11 +73,11 @@ export async function onRequestPost({ request, env }) {
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
   try {
-    const response = await client.beta.messages.create({
-      model: 'claude-opus-5-5',
-      max_tokens: 2000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
+    // Cheapest current model, low effort, short answers: ~$0.0003 per exchange.
+    const response = await client.messages.create({
+      model: 'claude-haiku-5-5',
+      max_tokens: 600,
+      output_config: { effort: 'low' },
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
       messages: history,
     })

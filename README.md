@@ -36,7 +36,8 @@ served by a Cloudflare Pages Function (`functions/api/ask.js`) that holds the AP
 never reaches the browser. Set two secrets on the Pages project
 (**Settings → Variables and secrets**, type *Secret*, environment *Production*):
 
-- `ANTHROPIC_API_KEY` — from https://console.anthropic.com
+- `ANTHROPIC_API_KEY` — from https://console.anthropic.com. The chat uses Claude Haiku 5.5 at low
+  effort with short replies: about $0.0003 per exchange, so a dollar covers ~3,000 questions.
 - `ACCESS_CODE` — any passcode you choose; the site asks for it once per device
 
 Without both, the chat shows an error and nothing is billed. Transcripts are saved per question in

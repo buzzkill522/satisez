@@ -51,7 +51,7 @@ export default function Browse() {
           <button className="link" disabled={i <= 0} onClick={() => setOpen(list[i - 1].id)}>Prev</button>
           <button className="link" disabled={i < 0 || i >= list.length - 1} onClick={() => setOpen(list[i + 1].id)}>Next</button>
         </div>
-        <QuestionView key={openQ.id} question={openQ} instantFeedback />
+        <QuestionView key={openQ.id} question={openQ} number={i + 1} instantFeedback />
       </div>
     )
   }

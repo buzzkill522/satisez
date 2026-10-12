@@ -98,10 +98,12 @@ function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
   const { questions, mode, limit } = session
   const [idx, setIdx] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
   const [results, setResults] = useState<Record<string, { answer: string; correct: boolean; seconds: number }>>({})
   const qStart = useRef(Date.now())
   const { flagged } = useStore()
   const q = questions[idx]
+  const section = questions[0]?.section ?? 'rw'
 
   useEffect(() => {
     qStart.current = Date.now()
@@ -117,12 +119,18 @@ function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
   )
 
   const finish = useCallback(() => setFinished(true), [])
+  const go = (i: number) => {
+    setIdx(Math.max(0, Math.min(questions.length - 1, i)))
+    setNavOpen(false)
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight') setIdx((i) => Math.min(questions.length - 1, i + 1))
       if (e.key === 'ArrowLeft') setIdx((i) => Math.max(0, i - 1))
+      if (e.key === 'Escape') setNavOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -130,6 +138,7 @@ function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
 
   const answered = Object.keys(results).length
   const correct = Object.values(results).filter((r) => r.correct).length
+  const title = `${mode === 'timed' ? 'Module' : 'Practice'}: ${SECTION_NAMES[section]}`
 
   if (finished) {
     const totalSec = Object.values(results).reduce((s, r) => s + r.seconds, 0)
@@ -163,58 +172,95 @@ function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
     )
   }
 
+  const navCell = (qq: Question, i: number) => {
+    const r = results[qq.id]
+    const cls = [
+      'bb-navcell',
+      i === idx && 'current',
+      r ? 'answered' : 'unanswered',
+      r && mode === 'practice' && (r.correct ? 'is-ok' : 'is-bad'),
+      flagged.includes(qq.id) && 'flagged',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return (
+      <button key={qq.id} className={cls} onClick={() => go(i)} aria-current={i === idx ? 'true' : undefined}>
+        {i + 1}
+      </button>
+    )
+  }
+
   return (
-    <div className="page runner">
-      <div className="runner-bar">
-        <button className="link" onClick={onExit}>← Exit</button>
-        <span>
-          {idx + 1} / {questions.length}
-          {mode === 'practice' && <span className="muted"> · {correct}/{answered} correct</span>}
-        </span>
-        <span className="spacer" />
-        <Timer limitSeconds={limit} running={!finished} onExpire={finish} />
-        {q.section === 'math' && (
-          <a className="link" href="https://www.desmos.com/calculator" target="_blank" rel="noreferrer">
-            Calculator ↗
-          </a>
-        )}
-        <button className="link" onClick={finish}>Finish</button>
-      </div>
+    <div className="bb-screen">
+      <header className="bb-top">
+        <div className="bb-top-left">
+          <div className="bb-section-title">{title}</div>
+          <div className="bb-directions">Directions ▾</div>
+        </div>
+        <div className="bb-top-center">
+          <Timer limitSeconds={limit} running={!finished} onExpire={finish} />
+        </div>
+        <div className="bb-top-right">
+          {section === 'math' && (
+            <a className="bb-tool" href="https://www.desmos.com/calculator" target="_blank" rel="noreferrer">
+              <span className="bb-tool-icon">▦</span>Calculator
+            </a>
+          )}
+          {section === 'math' && (
+            <a
+              className="bb-tool"
+              href="https://satsuite.collegeboard.org/media/pdf/digital-sat-math-reference-sheet.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="bb-tool-icon">x²</span>Reference
+            </a>
+          )}
+          <button className="bb-tool" onClick={onExit}>
+            <span className="bb-tool-icon">⋮</span>Exit
+          </button>
+        </div>
+      </header>
+      <div className="bb-practice-rule"><span>THIS IS A PRACTICE TEST</span></div>
 
-      <div className="nav-strip">
-        {questions.map((qq, i) => {
-          const r = results[qq.id]
-          const cls = [
-            'cell',
-            i === idx && 'current',
-            r && (mode === 'practice' ? (r.correct ? 'ok' : 'bad') : 'done'),
-            flagged.includes(qq.id) && 'flag',
-          ]
-            .filter(Boolean)
-            .join(' ')
-          return (
-            <button key={qq.id} className={cls} onClick={() => setIdx(i)}>
-              {i + 1}
-            </button>
-          )
-        })}
-      </div>
+      <main className="bb-main">
+        <QuestionView key={q.id} question={q} number={idx + 1} instantFeedback={mode === 'practice'} onAnswer={onAnswer} />
+      </main>
 
-      <QuestionView
-        key={q.id}
-        question={q}
-        instantFeedback={mode === 'practice'}
-        onAnswer={onAnswer}
-      />
+      {navOpen && (
+        <div className="bb-nav-popup" role="dialog" aria-label="Question navigator">
+          <div className="bb-nav-head">
+            <b>{title} Questions</b>
+            <button className="bb-nav-close" onClick={() => setNavOpen(false)} aria-label="Close">×</button>
+          </div>
+          <div className="bb-nav-legend">
+            <span><i className="legend-current" /> Current</span>
+            <span><i className="legend-unanswered" /> Unanswered</span>
+            <span><i className="legend-review" /> For Review</span>
+            {mode === 'practice' && <span><i className="legend-ok" /> Correct</span>}
+            {mode === 'practice' && <span><i className="legend-bad" /> Incorrect</span>}
+          </div>
+          <div className="bb-nav-grid">{questions.map(navCell)}</div>
+          <button className="bb-outline" onClick={finish}>Go to Review Page</button>
+        </div>
+      )}
 
-      <div className="runner-nav">
-        <button disabled={idx === 0} onClick={() => setIdx(idx - 1)}>← Back</button>
-        {idx < questions.length - 1 ? (
-          <button className="primary" onClick={() => setIdx(idx + 1)}>Next →</button>
-        ) : (
-          <button className="primary" onClick={finish}>Finish</button>
-        )}
-      </div>
+      <footer className="bb-bottom">
+        <div className="bb-bottom-left">
+          {mode === 'practice' ? `${correct}/${answered} correct` : 'SATisEZ'}
+        </div>
+        <button className={`bb-qnav-btn ${navOpen ? 'open' : ''}`} onClick={() => setNavOpen((o) => !o)}>
+          Question {idx + 1} of {questions.length} <span className="caret">{navOpen ? '▼' : '▲'}</span>
+        </button>
+        <div className="bb-bottom-right">
+          <button className="bb-btn" disabled={idx === 0} onClick={() => go(idx - 1)}>Back</button>
+          {idx < questions.length - 1 ? (
+            <button className="bb-btn" onClick={() => go(idx + 1)}>Next</button>
+          ) : (
+            <button className="bb-btn" onClick={finish}>Finish</button>
+          )}
+        </div>
+      </footer>
     </div>
   )
 }

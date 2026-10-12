@@ -6,6 +6,8 @@ import { store, useStore } from '../lib/store'
 
 interface Props {
   question: Question
+  /** 1-based question number shown in the black box. */
+  number: number
   /** Show correctness + rationale as soon as an answer is submitted. */
   instantFeedback: boolean
   /** Externally force the answer to be revealed (e.g. after a timed set ends). */
@@ -15,13 +17,29 @@ interface Props {
   resetKey?: unknown
 }
 
-export function QuestionView({ question: q, instantFeedback, revealed, onAnswer, resetKey }: Props) {
+const FlagIcon = ({ filled }: { filled: boolean }) => (
+  <svg width="14" height="16" viewBox="0 0 14 16" aria-hidden="true">
+    <path
+      d="M1.5 1v14M1.5 1.5h10l-2.5 3.5 2.5 3.5h-10"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+/**
+ * A question laid out like Bluebook: passage pane on the left (R&W), question pane with the
+ * numbered header strip, "Mark for Review", the ABC answer eliminator, and bordered answer
+ * cards with lettered circles. Practice-mode feedback is added below the choices.
+ */
+export function QuestionView({ question: q, number, instantFeedback, revealed, onAnswer, resetKey }: Props) {
   const [selected, setSelected] = useState<string>('')
   const [sprInput, setSprInput] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [eliminated, setEliminated] = useState<Set<string>>(new Set())
   const [eliminator, setEliminator] = useState(false)
-  const [showNote, setShowNote] = useState(false)
   const { flagged, notes } = useStore()
 
   useEffect(() => {
@@ -29,13 +47,12 @@ export function QuestionView({ question: q, instantFeedback, revealed, onAnswer,
     setSprInput('')
     setSubmitted(false)
     setEliminated(new Set())
-    setShowNote(false)
   }, [resetKey, q.id])
 
   const answer = q.type === 'spr' ? sprInput : selected
-  const isCorrect =
-    q.type === 'spr' ? checkSpr(sprInput, q.answers) : q.answers.includes(selected)
+  const isCorrect = q.type === 'spr' ? checkSpr(sprInput, q.answers) : q.answers.includes(selected)
   const showResult = revealed || (submitted && instantFeedback)
+  const locked = submitted || revealed
 
   function submit() {
     if (!answer.trim() || submitted) return
@@ -46,14 +63,14 @@ export function QuestionView({ question: q, instantFeedback, revealed, onAnswer,
   // Keyboard: A-D select, Enter submit
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
         if (e.key === 'Enter') submit()
         return
       }
       const k = e.key.toUpperCase()
-      if (q.type === 'mcq' && 'ABCD'.includes(k) && k.length === 1 && !submitted) {
-        setSelected(k)
-      } else if (e.key === 'Enter') submit()
+      if (q.type === 'mcq' && k.length === 1 && 'ABCD'.includes(k) && !locked) setSelected(k)
+      else if (e.key === 'Enter') submit()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -61,129 +78,138 @@ export function QuestionView({ question: q, instantFeedback, revealed, onAnswer,
 
   const isFlagged = flagged.includes(q.id)
 
-  return (
-    <div className="question">
-      <div className="q-meta">
-        <span className={`badge diff-${q.difficulty}`}>{DIFFICULTY_NAMES[q.difficulty]}</span>
-        <span className="badge">{q.domainName}</span>
-        <span className="badge subtle">{q.skillName}</span>
-        <span className="spacer" />
-        {q.type === 'mcq' && (
-          <button
-            className={`icon-btn ${eliminator ? 'active' : ''}`}
-            title="Answer eliminator (strike through choices)"
-            onClick={() => setEliminator((v) => !v)}
-          >
-            A̶B̶C̶
+  const header = (
+    <div className="bb-qhead">
+      <span className="bb-qnum">{number}</span>
+      <button className={`bb-mark ${isFlagged ? 'on' : ''}`} onClick={() => store.toggleFlag(q.id)}>
+        <FlagIcon filled={isFlagged} />
+        Mark for Review
+      </button>
+      {q.type === 'mcq' && (
+        <button
+          className={`bb-abc ${eliminator ? 'on' : ''}`}
+          title="Answer eliminator"
+          aria-pressed={eliminator}
+          onClick={() => setEliminator((v) => !v)}
+        >
+          <span>ABC</span>
+        </button>
+      )}
+    </div>
+  )
+
+  const choices = (
+    <div className="bb-choices">
+      {q.choices.map((c) => {
+        const isSel = selected === c.key
+        const isAns = q.answers.includes(c.key)
+        const isElim = eliminated.has(c.key)
+        const cls = [
+          'bb-choice',
+          isSel && 'selected',
+          isElim && 'eliminated',
+          showResult && isAns && 'correct',
+          showResult && isSel && !isAns && 'wrong',
+        ]
+          .filter(Boolean)
+          .join(' ')
+        return (
+          <div key={c.key} className={cls}>
+            <button className="bb-choice-main" disabled={locked} onClick={() => setSelected(c.key)}>
+              <span className="bb-letter">{c.key}</span>
+              <span className="bb-choice-text html" dangerouslySetInnerHTML={{ __html: c.content }} />
+            </button>
+            {eliminator && !showResult && (
+              <button
+                className={`bb-elim ${isElim ? 'undo' : ''}`}
+                aria-label={isElim ? `Undo eliminating ${c.key}` : `Eliminate ${c.key}`}
+                onClick={() =>
+                  setEliminated((s) => {
+                    const n = new Set(s)
+                    n.has(c.key) ? n.delete(c.key) : n.add(c.key)
+                    return n
+                  })
+                }
+              >
+                {isElim ? 'Undo' : <span className="bb-elim-letter">{c.key}</span>}
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const spr = (
+    <div className="bb-spr">
+      <input
+        type="text"
+        value={sprInput}
+        disabled={locked}
+        onChange={(e) => setSprInput(e.target.value)}
+        aria-label="Your answer"
+        className={showResult ? (isCorrect ? 'correct' : 'wrong') : ''}
+      />
+      <div className="bb-spr-preview">
+        Answer Preview: <span className="serif">{sprInput || ' '}</span>
+      </div>
+      {showResult && (
+        <div className="bb-spr-answer">
+          Correct answer{q.answers.length > 1 ? 's' : ''}: <b>{q.answers.join(', ')}</b>
+        </div>
+      )}
+    </div>
+  )
+
+  const prompt = (
+    <div className="bb-pane bb-prompt">
+      {header}
+      <div className="bb-pane-body">
+        {q.section === 'math' && q.stimulus && (
+          <div className="bb-figure html" dangerouslySetInnerHTML={{ __html: q.stimulus }} />
+        )}
+        <div className="bb-stem html" dangerouslySetInnerHTML={{ __html: q.stem }} />
+        {q.type === 'mcq' ? choices : spr}
+
+        {!locked && (
+          <button className="bb-check" onClick={submit} disabled={!answer.trim()}>
+            {instantFeedback ? 'Check Answer' : 'Submit'}
           </button>
         )}
-        <button className="icon-btn" title="Note" onClick={() => setShowNote((v) => !v)}>
-          {notes[q.id] ? '📝' : '🗒'}
-        </button>
-        <button
-          className={`icon-btn ${isFlagged ? 'active' : ''}`}
-          title="Mark for review"
-          onClick={() => store.toggleFlag(q.id)}
-        >
-          {isFlagged ? '🚩' : '⚑'}
-        </button>
-      </div>
+        {submitted && !showResult && <div className="bb-recorded">Answer recorded.</div>}
 
-      {showNote && (
-        <textarea
-          className="note"
-          placeholder="Your notes on this question…"
-          defaultValue={notes[q.id] ?? ''}
-          onBlur={(e) => store.setNote(q.id, e.target.value)}
-        />
-      )}
-
-      {/* R&W passages sit beside the question (like Bluebook); math tables/figures sit above it. */}
-      <div className={`q-body ${q.stimulus ? (q.section === 'rw' ? 'two-col' : 'stacked') : ''}`}>
-        {q.stimulus && <div className="stimulus html" dangerouslySetInnerHTML={{ __html: q.stimulus }} />}
-        <div className="prompt">
-          <div className="stem html" dangerouslySetInnerHTML={{ __html: q.stem }} />
-
-          {q.type === 'mcq' ? (
-            <div className="choices">
-              {q.choices.map((c) => {
-                const isSel = selected === c.key
-                const isAns = q.answers.includes(c.key)
-                const cls = [
-                  'choice',
-                  isSel && 'selected',
-                  eliminated.has(c.key) && 'eliminated',
-                  showResult && isAns && 'correct',
-                  showResult && isSel && !isAns && 'wrong',
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-                return (
-                  <div key={c.key} className={cls}>
-                    <button
-                      className="choice-main"
-                      disabled={submitted || revealed}
-                      onClick={() => setSelected(c.key)}
-                    >
-                      <span className="choice-key">{c.key}</span>
-                      <span className="html" dangerouslySetInnerHTML={{ __html: c.content }} />
-                    </button>
-                    {eliminator && !showResult && (
-                      <button
-                        className="elim-btn"
-                        title="Eliminate"
-                        onClick={() =>
-                          setEliminated((s) => {
-                            const n = new Set(s)
-                            n.has(c.key) ? n.delete(c.key) : n.add(c.key)
-                            return n
-                          })
-                        }
-                      >
-                        {eliminated.has(c.key) ? 'Undo' : 'Ⓧ'}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
+        {showResult && (
+          <div className={`bb-feedback ${isCorrect ? 'is-ok' : 'is-bad'}`}>
+            <div className="bb-feedback-title">
+              {!answer.trim() ? 'Not answered' : isCorrect ? 'Correct' : 'Incorrect'}
+              {q.type === 'mcq' && !isCorrect && ` — the correct answer is ${q.answers.join('/')}`}
             </div>
-          ) : (
-            <div className="spr">
-              <input
-                type="text"
-                value={sprInput}
-                disabled={submitted || revealed}
-                onChange={(e) => setSprInput(e.target.value)}
-                placeholder="Enter your answer (e.g. 3/4 or 0.75)"
-                className={showResult ? (isCorrect ? 'correct' : 'wrong') : ''}
-              />
-              {showResult && (
-                <div className="spr-answer">
-                  Correct answer{q.answers.length > 1 ? 's' : ''}: <b>{q.answers.join(', ')}</b>
-                </div>
-              )}
+            <div className="bb-tags">
+              {DIFFICULTY_NAMES[q.difficulty]} · {q.domainName} · {q.skillName}
             </div>
-          )}
-
-          {!submitted && !revealed && (
-            <button className="primary" onClick={submit} disabled={!answer.trim()}>
-              {instantFeedback ? 'Check answer' : 'Submit'}
-            </button>
-          )}
-
-          {submitted && !showResult && <div className="submitted-note">Answer recorded.</div>}
-
-          {showResult && (
-            <div className={`feedback ${isCorrect ? 'ok' : 'bad'}`}>
-              <div className="feedback-title">
-                {!answer.trim() ? 'Not answered' : isCorrect ? '✓ Correct' : '✗ Incorrect'}
-                {q.type === 'mcq' && !isCorrect && ` — correct answer is ${q.answers.join('/')}`}
-              </div>
-              <div className="rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
-            </div>
-          )}
-        </div>
+            <div className="bb-rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
+            <textarea
+              className="bb-note"
+              placeholder="Add a note to yourself about this question…"
+              defaultValue={notes[q.id] ?? ''}
+              onBlur={(e) => store.setNote(q.id, e.target.value)}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
+
+  if (q.section === 'rw' && q.stimulus) {
+    return (
+      <div className="bb-question split">
+        <div className="bb-pane bb-passage">
+          <div className="bb-pane-body html" dangerouslySetInnerHTML={{ __html: q.stimulus }} />
+        </div>
+        <div className="bb-divider" aria-hidden="true" />
+        {prompt}
+      </div>
+    )
+  }
+  return <div className="bb-question single">{prompt}</div>
 }

@@ -15,6 +15,7 @@ export function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`
 }
 
+/** Bluebook-style centered clock with a Hide/Show pill beside it. */
 export function Timer({ limitSeconds, running, onExpire, resetKey }: Props) {
   const [elapsed, setElapsed] = useState(0)
   const [hidden, setHidden] = useState(false)
@@ -42,15 +43,24 @@ export function Timer({ limitSeconds, running, onExpire, resetKey }: Props) {
   }, [remaining, onExpire])
 
   const shown = remaining ?? elapsed
+  // Bluebook un-hides the clock and turns it red for the last 5 minutes.
   const low = remaining !== null && remaining < 5 * 60
 
   return (
-    <button
-      className={`timer ${low ? 'timer-low' : ''}`}
-      onClick={() => setHidden((h) => !h)}
-      title="Click to hide/show"
-    >
-      {hidden ? '⏱' : formatTime(shown)}
-    </button>
+    <div className={`bb-timer ${low ? 'low' : ''}`}>
+      <span className="bb-clock" aria-live="off">
+        {hidden && !low ? (
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-label="Timer hidden">
+            <circle cx="11" cy="11" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M11 6v5l3 2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        ) : (
+          formatTime(shown)
+        )}
+      </span>
+      <button className="bb-pill" onClick={() => setHidden((h) => !h)}>
+        {hidden && !low ? 'Show' : 'Hide'}
+      </button>
+    </div>
   )
 }

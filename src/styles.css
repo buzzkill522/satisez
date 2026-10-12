@@ -126,6 +126,8 @@ code { background: var(--brand-50); border: 1px solid var(--brand-100); padding:
 /* The wordmark is a NavLink too: never give it the active-pill treatment. */
 .topnav a.brand, .topnav a.brand.active, .topnav a.brand:hover { color: var(--ink); background: none; }
 .topnav .brand { font-family: var(--font-display); font-weight: 900; font-size: 1.35rem; letter-spacing: -0.02em; color: var(--ink); margin-right: .75rem; padding-left: 0; padding-right: 0; background: none !important; }
+.topnav .brand { display: inline-flex; align-items: center; gap: .5rem; }
+.topnav .brand-mark { flex: none; display: block; }
 .topnav .brand .brand-ez { box-shadow: inset 0 -.32em 0 var(--gold-500); color: var(--ink); }
 :root[data-theme="dark"] .topnav .brand .brand-ez { box-shadow: inset 0 -.32em 0 var(--gold-700); }
 /* Amanat ThemeToggle: one 44×44 icon button showing the theme it switches to. */

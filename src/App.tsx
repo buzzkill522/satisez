@@ -43,7 +43,10 @@ export default function App() {
   return (
     <HashRouter>
       <nav className="topnav">
-        <NavLink to="/" className="brand">SATis<span className="brand-ez">EZ</span></NavLink>
+        <NavLink to="/" className="brand" aria-label="SATisEZ home">
+          <LogoMark />
+          <span className="brand-word">SATis<span className="brand-ez">EZ</span></span>
+        </NavLink>
         <div className="nav-links">
           <NavLink to="/practice">Practice</NavLink>
           <NavLink to="/browse">Browse</NavLink>
@@ -105,6 +108,16 @@ function AccountMenu() {
     </div>
   )
 }
+
+/** The SATisEZ mark: a filled-in answer bubble with a check. The tile follows the text colour,
+ * so it's black in light mode and off-white in dark mode; the bubble and check stay the same. */
+const LogoMark = () => (
+  <svg className="brand-mark" width="30" height="30" viewBox="0 0 64 64" aria-hidden="true">
+    <rect width="64" height="64" rx="16" fill="currentColor" />
+    <circle cx="32" cy="32" r="19.5" fill="#FFD23F" />
+    <path d="M22.5 32.5l6.5 6.5 13-13.5" fill="none" stroke="#161616" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
 
 /* Line icons in Amanat's style: 2.5px strokes, round caps and joins, currentColor. */
 const MoonIcon = () => (

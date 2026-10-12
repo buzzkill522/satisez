@@ -5,6 +5,7 @@ import Practice from './pages/Practice'
 import Browse from './pages/Browse'
 import Stats from './pages/Stats'
 import Admin from './pages/Admin'
+import { GuideIndex, GuideRW, GuideSkillPage } from './pages/Guide'
 import { RequireAccess, RequireAdmin, GoogleButton } from './components/AuthGate'
 import { signOut, useAuth } from './lib/auth'
 
@@ -37,10 +38,13 @@ export default function App() {
     <HashRouter>
       <nav className="topnav">
         <NavLink to="/" className="brand">SATisEZ</NavLink>
-        <NavLink to="/practice">Practice</NavLink>
-        <NavLink to="/browse">Browse</NavLink>
-        <NavLink to="/stats">Progress</NavLink>
-        {user?.admin && <NavLink to="/admin">Admin</NavLink>}
+        <div className="nav-links">
+          <NavLink to="/practice">Practice</NavLink>
+          <NavLink to="/browse">Browse</NavLink>
+          <NavLink to="/stats">Progress</NavLink>
+          <NavLink to="/guide">Guide</NavLink>
+          {user?.admin && <NavLink to="/admin">Admin</NavLink>}
+        </div>
         <button
           className="theme-toggle"
           onClick={toggleTheme}
@@ -56,6 +60,9 @@ export default function App() {
         <Route path="/practice" element={<RequireAccess><Practice /></RequireAccess>} />
         <Route path="/browse" element={<RequireAccess><Browse /></RequireAccess>} />
         <Route path="/stats" element={<RequireAccess><Stats /></RequireAccess>} />
+        <Route path="/guide" element={<GuideIndex />} />
+        <Route path="/guide/rw" element={<GuideRW />} />
+        <Route path="/guide/rw/:slug" element={<GuideSkillPage />} />
         <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
       </Routes>
     </HashRouter>

@@ -15,6 +15,8 @@ export default function Practice() {
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     section: params.get('section') === 'math' ? 'math' : 'rw',
+    // e.g. /practice?section=rw&domain=CAS — used by links from the Guide
+    domains: params.get('domain') ? [params.get('domain')!] : [],
   })
   const [mode, setMode] = useState<Mode>(params.get('mode') === 'timed' ? 'timed' : 'practice')
   const [count, setCount] = useState(10)

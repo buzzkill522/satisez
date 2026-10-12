@@ -27,6 +27,9 @@ const limit = (() => {
   return i === -1 ? Infinity : Number(process.argv[i + 1])
 })()
 
+// Last non-OK HTTP status per URL kind, for the summary.
+const httpErrors = new Map()
+
 async function post(url, body) {
   for (let attempt = 1; attempt <= 5; attempt++) {
     try {
@@ -36,7 +39,10 @@ async function post(url, body) {
         body: JSON.stringify(body),
       })
       if (res.status === 429 || res.status >= 500) throw new Error(`HTTP ${res.status}`)
-      if (!res.ok) return null
+      if (!res.ok) {
+        httpErrors.set(`POST ${url.split('/').pop()}`, res.status)
+        return null
+      }
       return await res.json()
     } catch (err) {
       if (attempt === 5) throw err
@@ -47,7 +53,17 @@ async function post(url, body) {
 
 async function get(url) {
   const res = await fetch(url)
-  return res.ok ? res.json() : null
+  if (!res.ok) {
+    httpErrors.set(`GET ${new URL(url).host}`, res.status)
+    return null
+  }
+  return res.json()
+}
+
+/** Fetch one question's content. Older ("ibn") items live on a separate host; fall back to the main API. */
+async function fetchDetail(meta) {
+  if (meta.external_id) return post(`${API}/get-question`, { external_id: meta.external_id })
+  return (await get(`${IBN_API}/${meta.ibn}.json`)) ?? post(`${API}/get-question`, { external_id: meta.ibn })
 }
 
 /** Normalise both API shapes into the format the site consumes. */
@@ -110,38 +126,54 @@ async function main() {
     }
     const have = new Map(existing.map((q) => [q.id, q]))
 
+    // List each domain separately so one bad code or failed request can't hide the others.
     console.log(`\n${test.name}: listing questions…`)
-    const list = await post(`${API}/get-questions`, {
-      asmtEventId: SAT_EVENT_ID,
-      test: test.id,
-      domain: test.domains,
-    })
-    const metas = (list ?? []).slice(0, limit)
-    console.log(`  ${metas.length} questions in bank, ${have.size} cached`)
+    const seen = new Set()
+    const metas = []
+    for (const domain of test.domains.split(',')) {
+      const list = await post(`${API}/get-questions`, { asmtEventId: SAT_EVENT_ID, test: test.id, domain })
+      console.log(`  ${domain}: ${list ? `${list.length} listed` : 'LISTING FAILED'}`)
+      for (const meta of list ?? []) {
+        const id = meta.external_id || meta.ibn
+        if (id && !seen.has(id)) {
+          seen.add(id)
+          metas.push(meta)
+        }
+      }
+    }
+    metas.splice(limit)
+    console.log(`  ${metas.length} questions total, ${have.size} cached`)
 
     const results = []
+    const stats = { cached: 0, fetched: 0, empty: 0, error: 0, ibn: 0 }
     let done = 0
     const queue = [...metas]
     async function worker() {
       while (queue.length) {
         const meta = queue.shift()
         const id = meta.external_id || meta.ibn
+        if (!meta.external_id) stats.ibn++
         let q = have.get(id)
-        if (!q) {
+        if (q) stats.cached++
+        else {
           try {
-            const detail = meta.external_id
-              ? await post(`${API}/get-question`, { external_id: meta.external_id })
-              : await get(`${IBN_API}/${meta.ibn}.json`)
-            q = normalise(meta, detail, test.key)
+            q = normalise(meta, await fetchDetail(meta), test.key)
+            if (q) stats.fetched++
+            else stats.empty++
           } catch (err) {
+            stats.error++
             console.warn(`  ! failed ${id}: ${err.message}`)
           }
         }
         if (q) results.push(q)
-        if (++done % 100 === 0) console.log(`  ${done}/${metas.length}`)
+        if (++done % 250 === 0) console.log(`  ${done}/${metas.length}`)
       }
     }
     await Promise.all(Array.from({ length: 8 }, worker))
+    console.log(
+      `  saved ${results.length}/${metas.length} (cached ${stats.cached}, fetched ${stats.fetched}, ` +
+        `no content ${stats.empty}, errors ${stats.error}; ${stats.ibn} were older "ibn" items)`,
+    )
 
     if (results.length === 0) throw new Error(`No ${test.name} questions downloaded — API unreachable or its format changed`)
     results.sort((a, b) => a.id.localeCompare(b.id))
@@ -152,8 +184,11 @@ async function main() {
       console.log(`  wrote ${qs.length} → public/data/${test.key}/${domain}.json (${(json.length / 1e6).toFixed(1)} MB)`)
     }
     index[test.key] = [...byDomain.keys()]
+    const missing = test.domains.split(',').filter((d) => !byDomain.has(d))
+    if (missing.length) console.warn(`  WARNING: no questions saved for domain(s) ${missing.join(', ')}`)
   }
   await writeFile(new URL('index.json', OUT_DIR), JSON.stringify(index))
+  if (httpErrors.size) console.warn(`\nHTTP errors seen: ${[...httpErrors].map(([k, v]) => `${k} → ${v}`).join(', ')}`)
 }
 
 main().catch((err) => {

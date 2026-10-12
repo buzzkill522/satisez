@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { RW_DOMAINS, RW_FACTS, RW_SKILLS, type GuideDomain } from '../guide/rw'
+import { RW_DOMAINS, RW_FACTS, RW_SKILLS, type GuideDomain, type GuideSkill } from '../guide/rw'
 import { useAuth } from '../lib/auth'
+import { loadSection } from '../lib/data'
+import { store } from '../lib/store'
+import { QuestionView } from '../components/QuestionView'
+import type { Difficulty, Question } from '../lib/types'
 
 const domainClass = (code: string) => `dom-${code.toLowerCase()}`
 
@@ -152,6 +156,14 @@ export function GuideSkillPage() {
       <h1>{s.name}</h1>
       <p className="lead">{s.asks}</p>
 
+      <SampleQuestion
+        skill={s}
+        which="before"
+        difficulty="H"
+        title="Warm-up: try a hard one first"
+        blurb="Attempt it cold, before reading the strategy, so you can see what the steps fix. It's a real question from the bank."
+      />
+
       <section className="g-section">
         <h2>Where it appears</h2>
         <p>
@@ -197,6 +209,14 @@ export function GuideSkillPage() {
       <ContentSection title="Time target" filled={Boolean(s.timeTarget.trim())} isAdmin={isAdmin}>
         <p className="g-time">{s.timeTarget}</p>
       </ContentSection>
+
+      <SampleQuestion
+        skill={s}
+        which="after"
+        difficulty="M"
+        title="Now apply it: a medium one"
+        blurb="Run the steps in order — clues, tone, subject, predict, eliminate — before you look at the choices."
+      />
 
       <div className="g-actions">
         <Link className="primary-link" to={`/practice?section=rw&domain=${d.code}`}>
@@ -257,5 +277,60 @@ function Crumbs({ items }: { items: [string, string?][] }) {
         </span>
       ))}
     </nav>
+  )
+}
+
+/**
+ * A real question from the bank embedded in a guide page. Uses the skill's configured ID when
+ * set, otherwise the first question of the wanted difficulty for this skill (stable: the bank is
+ * sorted by ID). Only renders once the strategy content exists, so unfinished pages stay clean.
+ */
+function SampleQuestion({ skill, which, difficulty, title, blurb }: { skill: GuideSkill; which: 'before' | 'after'; difficulty: Difficulty; title: string; blurb: string }) {
+  const [q, setQ] = useState<Question | null | undefined>(undefined)
+  const wantedId = skill.samples?.[which]
+  const hasContent = skill.approach.length > 0
+
+  useEffect(() => {
+    if (!hasContent) return
+    let alive = true
+    loadSection('rw')
+      .then((all) => {
+        const pick =
+          (wantedId && all.find((x) => x.id === wantedId)) ||
+          all.filter((x) => x.skillName === skill.name && x.difficulty === difficulty).sort((a, b) => a.id.localeCompare(b.id))[0] ||
+          null
+        if (alive) setQ(pick)
+      })
+      .catch(() => alive && setQ(null))
+    return () => {
+      alive = false
+    }
+  }, [hasContent, wantedId, skill.name, difficulty])
+
+  if (!hasContent || q === null) return null
+  return (
+    <section className={`g-section g-sample ${which}`}>
+      <div className="g-sample-head">
+        <h2>{title}</h2>
+        {q && (
+          <Link className="g-sample-id" to={`/browse?q=${q.id}`} title="Open this question in Browse">
+            ID {q.id}
+          </Link>
+        )}
+      </div>
+      <p className="muted">{blurb}</p>
+      {q === undefined ? (
+        <p className="muted small">Loading the question…</p>
+      ) : (
+        <div className="g-sample-q">
+          <QuestionView
+            question={q}
+            number={which === 'before' ? 1 : 2}
+            instantFeedback
+            onAnswer={(answer, correct) => store.recordAttempt({ qid: q.id, answer, correct, seconds: 0, at: Date.now() })}
+          />
+        </div>
+      )}
+    </section>
   )
 }

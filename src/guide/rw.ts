@@ -20,6 +20,12 @@ export interface GuideSkill {
   example: string
   /** e.g. "About 45 seconds". */
   timeTarget: string
+  /**
+   * Real question IDs from the bank to embed: a Hard one to attempt before the strategy and a
+   * Medium one to apply it afterwards. Leave an ID empty and the page picks the first matching
+   * question of that difficulty for this skill (stable, since the bank is sorted by ID).
+   */
+  samples?: { before?: string; after?: string }
 }
 
 export interface GuideDomain {
@@ -54,7 +60,25 @@ export const RW_DOMAINS: GuideDomain[] = [
           'Which choice completes the text with the most logical and precise word or phrase?',
           'As used in the text, what does the word "___" most nearly mean?',
         ],
-        ...empty,
+        approach: [
+          'Identify the contextual clues. Find the words that pin down the blank: a colon or dash that introduces examples, "because" or "so" (cause and effect), "although", "but" or "despite" (contrast), a restatement in the next sentence. Underline them before you think about any choice.',
+          'Identify the tone. Is the sentence praising, criticising, or just reporting? A positive clue needs a positive word; a neutral, factual sentence needs a neutral word. Tone alone eliminates one or two choices on most questions.',
+          'Identify the subject. Name exactly what the blank describes: a person, a finding, a method, a mood. A word can be the right tone and still be wrong because it cannot describe that kind of thing (a study is not "generous"; a person is not "comprehensive").',
+          'Predict. Cover the choices and put your own plain word in the blank, using only the clues: "varied", "unexpected", "made worse". If you cannot predict, you have not found the clue yet; go back to step 1.',
+          'Eliminate until one is left. Compare each choice to your prediction, the tone and the subject, and cross out anything that misses on any of the three. The answer is the most precise match, not the most impressive word. If two survive, reread the clue and ask which one the sentence actually proves.',
+        ],
+        traps: [
+          'Right meaning, wrong tone: a choice that fits the idea but is harsher or warmer than the passage ("notorious" where the text only means "well known").',
+          'Fits the grammar, ignores the clue: every choice will read as a correct sentence. Only one is supported by the words around the blank.',
+          'A common word in an uncommon sense: on "most nearly means" questions the ordinary meaning of the word is usually a distractor; the answer is the sense that works in that sentence.',
+          'Near-synonyms where one is more precise: if two choices both "work", the clue will favour the one that matches it exactly.',
+          'The hardest-looking word: choices are not scored by difficulty. Picking the fanciest word without a clue is a guess.',
+        ],
+        example:
+          'The following text is from a review of a new history of the printing press. "Earlier accounts treated the press as a sudden rupture, as if Europe went from scribes to bookshops overnight. This history is more ______: it follows the slow spread of workshops town by town and shows how long handwritten and printed books existed side by side."\n\nWhich choice completes the text with the most logical and precise word or phrase? A) celebratory  B) gradual  C) nuanced  D) skeptical\n\nClues: the colon introduces what the new history does, "follows the slow spread" and "shows how long … side by side". The contrast is with "sudden rupture" and "overnight". Tone: neutral and approving, not critical. Subject: a history book, so the word must describe how an account treats its topic.\n\nPredict: "careful about detail", "less black-and-white".\n\nEliminate: A, celebratory, is the wrong tone and ignores the clue. B, gradual, describes the spread of printing, not the book, so it is the wrong subject. D, skeptical, would need the book to doubt something; it does not. C, nuanced, matches the prediction exactly: an account that resists a simple story. Answer: C.',
+        timeTarget:
+          'Under a minute. Words in Context questions open the module and are the shortest passages on the test; aim for 45 seconds on easy and medium ones so you bank time for the longer questions later.',
+        samples: { before: '', after: '' },
       },
       {
         slug: 'text-structure-and-purpose',

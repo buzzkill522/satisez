@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { Filters, Question } from '../lib/types'
 import { DIFFICULTY_NAMES } from '../lib/types'
 import { loadSection } from '../lib/data'
@@ -12,14 +13,15 @@ export default function Browse() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [all, setAll] = useState<Question[] | null>(null)
   const [error, setError] = useState('')
-  const [open, setOpen] = useState<string | null>(null)
+  const [params] = useSearchParams()
+  // /browse?q=<id> opens that question straight away (used by the guide's sample links)
+  const [open, setOpen] = useState<string | null>(params.get('q'))
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const { attempts, flagged } = useStore()
 
   useEffect(() => {
     setAll(null)
-    setOpen(null)
     loadSection(filters.section).then(setAll).catch((e) => setError(e.message))
   }, [filters.section])
 

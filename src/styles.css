@@ -764,3 +764,14 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
   .mock-explain { opacity: 1; transform: none; }
   .mock-toast { opacity: 1; transform: none; }
 }
+
+/* Sample questions embedded in guide pages */
+.g-sample { border-width: 2px; }
+.g-sample.before { border-color: var(--alert-500); }
+.g-sample.after { border-color: var(--grow-500); }
+.g-sample-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.g-sample-id { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--muted-ink); text-decoration: none; background: var(--brand-50); border: 1px solid var(--brand-100); border-radius: 999px; padding: .1rem .7rem; }
+.g-sample-id:hover { color: var(--ink); border-color: var(--brand-400); }
+.g-sample-q { margin: .75rem -1.5rem -1.35rem; border-top: 1px solid var(--brand-100); padding: 1rem 0 .5rem; }
+.g-sample-q .bb-question.split { grid-template-columns: 1fr 10px 1fr; }
+.g-sample-q .bb-divider { min-height: 0; }

@@ -112,3 +112,28 @@ export const json = (data, status = 200, headers = {}) =>
 export function missingConfig(env) {
   return ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET', 'ADMIN_EMAILS', 'USERS'].filter((k) => !setting(env, k))
 }
+/** Email + password sign-in needs only the session secret and the user store. */
+export const emailAuthReady = (env) => Boolean(setting(env, 'SESSION_SECRET') && env.USERS)
+export const googleAuthReady = (env) => Boolean(setting(env, 'GOOGLE_CLIENT_ID') && setting(env, 'GOOGLE_CLIENT_SECRET'))
+
+// --- Passwords: PBKDF2-SHA256 via WebCrypto, 100k rounds, per-user random salt ---
+const PBKDF2_ITERATIONS = 100_000
+async function pbkdf2(password, saltBytes) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations: PBKDF2_ITERATIONS }, key, 256)
+  return new Uint8Array(bits)
+}
+export async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  return { salt: b64url(salt), hash: b64url(await pbkdf2(password, salt)), iterations: PBKDF2_ITERATIONS }
+}
+export async function verifyPassword(password, record) {
+  if (!record?.salt || !record?.hash) return false
+  const got = await pbkdf2(password, fromB64url(record.salt))
+  const want = fromB64url(record.hash)
+  if (got.length !== want.length) return false
+  let diff = 0
+  for (let i = 0; i < got.length; i++) diff |= got[i] ^ want[i]
+  return diff === 0
+}
+export const validEmail = (e) => typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length <= 254

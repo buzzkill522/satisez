@@ -5,7 +5,6 @@ let indexPromise: Promise<Record<Section, string[]>> | null = null
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`, { cache: 'no-cache' })
-  if (res.status === 401 || res.status === 403) throw new Error('Your account does not have access to the question bank.')
   if (!res.ok) throw new Error(`Missing data/${path} — run \`npm run fetch\` first.`)
   return res.json()
 }

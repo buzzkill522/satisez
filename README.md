@@ -36,26 +36,21 @@ domain under `public/data/` (plus an `index.json`). Those files are git-ignored 
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
-## Accounts (Sign in with Google)
+## Accounts (optional)
 
-Anyone can create an account with Google. The College Board questions are locked on the server
-(`functions/_middleware.js` guards `/data/*`): only admins, and users an admin switches on from the
-**Admin** page, can load them. New users see a "waiting for access" message.
+Nothing requires an account: questions, practice, the tutor and the guide are open to everyone.
+Signing in is offered for the Admin page and, later, syncing progress across devices.
 
-Setup, once:
+Two methods, both at `/#/signin`:
 
-1. **Google OAuth client** — https://console.cloud.google.com → create a project →
-   *APIs & Services → OAuth consent screen*: app name, support email, audience **External**, then
-   **Publish app**. Then *Credentials → Create credentials → OAuth client ID → Web application*,
-   authorized redirect URI `https://satisez.pages.dev/api/auth/callback`. Copy the client ID and secret.
-2. **Cloudflare KV** — *Workers & Pages → KV → Create namespace* (e.g. `satisez-users`), then in the
-   Pages project *Settings → Bindings → Add → KV namespace*, variable name `USERS`.
-3. **Pages variables** (*Settings → Variables and secrets*, Production):
-   - `GOOGLE_CLIENT_ID` — from step 1
-   - `GOOGLE_CLIENT_SECRET` — from step 1 (type *Secret*)
-   - `SESSION_SECRET` — a long random string (type *Secret*); changing it signs everyone out
-   - `ADMIN_EMAILS` — your Gmail address (comma-separate to add more admins)
-4. Redeploy.
+- **Email + password** — needs only `SESSION_SECRET` (a long random string, type *Secret*) and the
+  `USERS` KV binding (*Workers & Pages → KV → Create namespace*, then *Settings → Bindings → Add → KV
+  namespace*, variable name `USERS`). Passwords are stored as PBKDF2-SHA256 hashes.
+- **Google** — additionally `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` from an OAuth client
+  (Web application, redirect URI `https://satisez.pages.dev/api/auth/callback`). The Google button only
+  appears when both are set.
+
+`ADMIN_EMAILS` (comma-separated) marks admins; they see the **Admin** page listing every account.
 
 ## AI tutor ("Ask about this question")
 

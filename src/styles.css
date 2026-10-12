@@ -617,3 +617,19 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
   .sb-main { font-size: 16px; }
   .step-hint { margin-left: 0; }
 }
+
+/* Sign-in page */
+.signin-page { max-width: 520px; }
+.signin-card { background: var(--surface); border: 1px solid var(--brand-100); border-radius: var(--radius-3xl); box-shadow: var(--shadow-card); padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+.signin-card h1 { margin: 0; }
+.signin-card > .muted { margin: -.5rem 0 0; }
+.signin-card .google-btn { width: 100%; justify-content: center; }
+.or { display: flex; align-items: center; gap: .75rem; color: var(--muted-ink); font-size: 14px; }
+.or::before, .or::after { content: ''; flex: 1; border-top: 1px solid var(--brand-100); }
+.signin-form { display: flex; flex-direction: column; gap: .9rem; }
+.signin-form label { display: flex; flex-direction: column; gap: .35rem; font-weight: 700; font-family: var(--font-display); }
+.signin-form input { font-family: var(--font-sans); font-weight: 400; }
+.signin-form .seg.tabs button { border-radius: 999px; }
+.signin-form button.primary { width: 100%; }
+.signin-link { font-family: var(--font-display); font-weight: 800; text-decoration: none; color: var(--ink); border: 2px solid var(--brand-400); border-radius: var(--radius-2xl); min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 1rem; box-shadow: 0 4px 0 var(--brand-200); }
+.signin-link:hover { background: var(--brand-50); }

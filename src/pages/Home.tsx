@@ -4,8 +4,6 @@ import type { Question } from '../lib/types'
 import { loadAll } from '../lib/data'
 import { latestByQuestion, useStore } from '../lib/store'
 import { MODULE_SPEC, domainRank } from '../lib/types'
-import { useAuth } from '../lib/auth'
-import { AccessNotice } from '../components/AuthGate'
 import { ArrowRightIcon, BookIcon, CalcIcon, ChartIcon, ChatIcon, ClockIcon, FlagIcon, MapIcon, ScreenIcon, SparkIcon } from '../components/Icons'
 
 export default function Home() {
@@ -14,13 +12,9 @@ export default function Home() {
   const { attempts } = useStore()
   const done = latestByQuestion(attempts).size
 
-  const { user } = useAuth()
-  const canLoad = Boolean(user?.access)
-
   useEffect(() => {
-    if (!canLoad) return
     loadAll().then(setAll).catch((e) => setError(e.message))
-  }, [canLoad])
+  }, [])
 
   const counts = useMemo(() => {
     if (!all) return null
@@ -60,9 +54,7 @@ export default function Home() {
       </section>
 
       <div className="page home">
-        {!canLoad ? (
-          <AccessNotice />
-        ) : error ? (
+        {error ? (
           <div className="error-box">
             <b>No question data found.</b>
             <p>Run <code>npm run fetch</code> once to download the question bank, then reload.</p>
@@ -193,7 +185,7 @@ export default function Home() {
         </section>
 
         {/* The bank */}
-        {canLoad && byDomain.length > 0 && (
+        {byDomain.length > 0 && (
           <section className="home-section">
             <h2>What's in the bank</h2>
             <p className="muted">Every released question, grouped by domain. Practise any row with one tap.</p>

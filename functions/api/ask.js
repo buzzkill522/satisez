@@ -54,8 +54,7 @@ function questionContext(q) {
   return parts.join('\n\n')
 }
 
-export async function onRequestPost({ request, env, data }) {
-  if (!data.user) return json({ error: 'Sign in to use the tutor.' }, 401)
+export async function onRequestPost({ request, env }) {
   if (!env.AI) {
     return json({ error: 'The Workers AI binding is missing. In Cloudflare: Pages project → Settings → Bindings → Add → Workers AI, name it AI, then redeploy.' }, 500)
   }

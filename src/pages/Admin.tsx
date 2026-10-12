@@ -8,6 +8,7 @@ interface AdminUser {
   lastLogin: string
   access: boolean
   admin: boolean
+  hasPassword?: boolean
 }
 
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString() : '—')
@@ -15,7 +16,6 @@ const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString() : '—')
 export default function Admin() {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [error, setError] = useState('')
-  const [saving, setSaving] = useState<string | null>(null)
   const [query, setQuery] = useState('')
 
   async function load() {
@@ -29,25 +29,9 @@ export default function Admin() {
     load()
   }, [])
 
-  async function setAccess(u: AdminUser, access: boolean) {
-    setSaving(u.email)
-    const res = await fetch(`${import.meta.env.BASE_URL}api/admin/users`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: u.email, access }),
-    })
-    setSaving(null)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      return setError(data.error || `Could not update ${u.email}.`)
-    }
-    setUsers((list) => list?.map((x) => (x.email === u.email ? { ...x, access } : x)) ?? null)
-  }
-
   const shown = (users ?? []).filter(
     (u) => !query || u.email.includes(query.toLowerCase()) || u.name.toLowerCase().includes(query.toLowerCase()),
   )
-  const withAccess = (users ?? []).filter((u) => u.access || u.admin).length
 
   return (
     <div className="page">
@@ -56,13 +40,9 @@ export default function Admin() {
       {users && (
         <div className="stats-row">
           <div className="stat"><div className="stat-value">{users.length}</div><div className="stat-label">Registered users</div></div>
-          <div className="stat"><div className="stat-value">{withAccess}</div><div className="stat-label">With question-bank access</div></div>
         </div>
       )}
-      <p className="muted small">
-        Question-bank access unlocks the College Board questions. Keep it to people you'd personally share
-        them with — the questions are College Board's copyrighted material.
-      </p>
+      <p className="muted small">Everyone who has signed in, with Google or with an email and password.</p>
       <input className="search" placeholder="Search by name or email…" value={query} onChange={(e) => setQuery(e.target.value)} />
       {!users && !error && <p className="muted">Loading…</p>}
       {users && (
@@ -72,7 +52,7 @@ export default function Admin() {
               <th>User</th>
               <th>Joined</th>
               <th>Last sign-in</th>
-              <th>Question bank</th>
+              <th>Signs in with</th>
             </tr>
           </thead>
           <tbody>
@@ -89,21 +69,7 @@ export default function Admin() {
                 </td>
                 <td className="muted small">{fmt(u.createdAt)}</td>
                 <td className="muted small">{fmt(u.lastLogin)}</td>
-                <td>
-                  {u.admin ? (
-                    <span className="muted small">Always</span>
-                  ) : (
-                    <label className="switch">
-                      <input
-                        type="checkbox"
-                        checked={u.access}
-                        disabled={saving === u.email}
-                        onChange={(e) => setAccess(u, e.target.checked)}
-                      />
-                      <span>{u.access ? 'On' : 'Off'}</span>
-                    </label>
-                  )}
-                </td>
+                <td className="muted small">{u.hasPassword ? 'Email + password' : 'Google'}</td>
               </tr>
             ))}
           </tbody>

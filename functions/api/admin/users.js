@@ -17,7 +17,7 @@ export async function onRequestGet({ env, data }) {
   do {
     const page = await env.USERS.list({ prefix: 'user:', cursor })
     const batch = await Promise.all(page.keys.map((k) => env.USERS.get(k.name, 'json')))
-    for (const u of batch) if (u) users.push({ ...u, admin: isAdmin(env, u.email) })
+    for (const u of batch) if (u) users.push({ ...u, password: undefined, hasPassword: Boolean(u.password), admin: isAdmin(env, u.email) })
     cursor = page.list_complete ? undefined : page.cursor
   } while (cursor)
   users.sort((a, b) => (b.lastLogin || '').localeCompare(a.lastLogin || ''))

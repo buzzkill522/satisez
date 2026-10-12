@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { HashRouter, NavLink, Route, Routes } from 'react-router-dom'
+import { HashRouter, Link, NavLink, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Practice from './pages/Practice'
 import Browse from './pages/Browse'
 import Stats from './pages/Stats'
 import Admin from './pages/Admin'
+import SignIn from './pages/SignIn'
 import { GuideIndex, GuideRW, GuideSkillPage } from './pages/Guide'
-import { RequireAccess, RequireAdmin, GoogleButton } from './components/AuthGate'
+import { RequireAdmin } from './components/AuthGate'
 import { signOut, useAuth } from './lib/auth'
 
 type Theme = 'light' | 'dark'
@@ -57,9 +58,10 @@ export default function App() {
       </nav>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/practice" element={<RequireAccess><Practice /></RequireAccess>} />
-        <Route path="/browse" element={<RequireAccess><Browse /></RequireAccess>} />
-        <Route path="/stats" element={<RequireAccess><Stats /></RequireAccess>} />
+        <Route path="/practice" element={<Practice />} />
+        <Route path="/browse" element={<Browse />} />
+        <Route path="/stats" element={<Stats />} />
+        <Route path="/signin" element={<SignIn />} />
         <Route path="/guide" element={<GuideIndex />} />
         <Route path="/guide/rw" element={<GuideRW />} />
         <Route path="/guide/rw/:slug" element={<GuideSkillPage />} />
@@ -73,7 +75,7 @@ function AccountMenu() {
   const { loading, user, configured } = useAuth()
   const [open, setOpen] = useState(false)
   if (loading || !configured) return null
-  if (!user) return <div className="nav-account"><GoogleButton /></div>
+  if (!user) return <div className="nav-account"><Link className="signin-link" to="/signin">Sign in</Link></div>
   return (
     <div className="nav-account">
       <button className="avatar-btn" onClick={() => setOpen((o) => !o)} aria-label="Account" aria-expanded={open}>
@@ -83,7 +85,7 @@ function AccountMenu() {
         <div className="account-pop" onMouseLeave={() => setOpen(false)}>
           <div className="account-name">{user.name}</div>
           <div className="muted small">{user.email}</div>
-          <div className="small account-role">{user.admin ? 'Admin' : user.access ? 'Question bank: on' : 'Waiting for access'}</div>
+          {user.admin && <div className="small account-role">Admin</div>}
           <button onClick={signOut}>Sign out</button>
         </div>
       )}

@@ -16,58 +16,6 @@ export function GoogleButton() {
   )
 }
 
-/** What to show instead of question content when the visitor can't load it. */
-export function AccessNotice() {
-  const { loading, user, configured, missing, ai } = useAuth()
-  if (loading) return <p className="muted">Checking your account…</p>
-  if (!configured) {
-    const all = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET', 'ADMIN_EMAILS', 'USERS']
-    return (
-      <div className="notice">
-        <b>Sign-in isn't set up on this deployment yet.</b>
-        <p>In Cloudflare → satisez → Settings, add the settings below, then retry the deployment.</p>
-        <ul className="setup-list">
-          {all.map((k) => (
-            <li key={k} className={missing.includes(k) ? 'todo' : 'done'}>
-              <span aria-hidden="true">{missing.includes(k) ? '○' : '✓'}</span> <code>{k}</code>
-              <span className="muted small"> — {k === 'USERS' ? 'KV namespace binding' : 'variable'}</span>
-            </li>
-          ))}
-          <li className={ai ? 'done' : 'todo'}>
-            <span aria-hidden="true">{ai ? '✓' : '○'}</span> <code>AI</code>
-            <span className="muted small"> — Workers AI binding (for the tutor)</span>
-          </li>
-        </ul>
-      </div>
-    )
-  }
-  if (!user)
-    return (
-      <div className="notice">
-        <b>Sign in to start practising.</b>
-        <p>Create a free account with your Google account. It takes a few seconds.</p>
-        <GoogleButton />
-      </div>
-    )
-  return (
-    <div className="notice">
-      <b>You're signed in as {user.email}.</b>
-      <p>Your account is waiting for access to the question bank. The site admin will switch it on for you.</p>
-    </div>
-  )
-}
-
-/** Renders children only for users who can load the question bank. */
-export function RequireAccess({ children }: { children: ReactNode }) {
-  const { loading, user } = useAuth()
-  if (!loading && user?.access) return <>{children}</>
-  return (
-    <div className="page">
-      <AccessNotice />
-    </div>
-  )
-}
-
 /** Renders children only for admins. */
 export function RequireAdmin({ children }: { children: ReactNode }) {
   const { loading, user } = useAuth()

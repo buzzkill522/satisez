@@ -18,9 +18,12 @@ interface AuthState {
   missing: string[]
   /** Whether the Workers AI binding for the tutor is connected. */
   ai: boolean
+  /** Which sign-in methods the server offers. */
+  google: boolean
+  email: boolean
 }
 
-let state: AuthState = { loading: true, user: null, configured: true, missing: [], ai: true }
+let state: AuthState = { loading: true, user: null, configured: true, missing: [], ai: true, google: false, email: false }
 const listeners = new Set<() => void>()
 const set = (next: AuthState) => {
   state = next
@@ -33,10 +36,10 @@ export function refreshMe() {
   return fetch(`${import.meta.env.BASE_URL}api/me`, { cache: 'no-store' })
     .then(async (res) => {
       if (!res.ok) throw new Error(String(res.status))
-      const data = (await res.json()) as { user: User | null; configured: boolean; missing?: string[]; ai?: boolean }
-      set({ loading: false, user: data.user, configured: data.configured, missing: data.missing ?? [], ai: data.ai ?? true })
+      const data = (await res.json()) as { user: User | null; configured: boolean; missing?: string[]; ai?: boolean; google?: boolean; email?: boolean }
+      set({ loading: false, user: data.user, configured: data.configured, missing: data.missing ?? [], ai: data.ai ?? true, google: data.google ?? false, email: data.email ?? false })
     })
-    .catch(() => set({ loading: false, user: null, configured: false, missing: [], ai: false }))
+    .catch(() => set({ loading: false, user: null, configured: false, missing: [], ai: false, google: false, email: false }))
 }
 
 export function useAuth(): AuthState {

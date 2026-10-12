@@ -5,6 +5,8 @@ export interface User {
   name: string
   picture: string
   admin: boolean
+  /** Site owner (listed in ADMIN_EMAILS): can add and remove other admins. */
+  owner?: boolean
   /** Can load the College Board question bank. */
   access: boolean
   /** Paid (or admin): full bank, guide and browse. */

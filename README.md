@@ -50,7 +50,12 @@ Two methods, both at `/#/signin`:
   (Web application, redirect URI `https://satisez.pages.dev/api/auth/callback`). The Google button only
   appears when both are set.
 
-`ADMIN_EMAILS` (comma-separated) marks admins; they see the **Admin** page listing every account.
+`ADMIN_EMAILS` (comma-separated) lists the site **owners**. Owners are always admins and can make
+other accounts admins from the **Admin** page. Every admin can: give, extend or remove Premium
+(1 month to lifetime, or until a date), add an account by email before the person signs up, block
+or unblock sign-in, set a new password, rename and delete accounts, and see each user's saved
+progress. The Admin page also has site totals, filters, CSV export and an activity log of admin
+actions. Owners can't be demoted, blocked or deleted from the site.
 
 ## Saved progress (accounts)
 

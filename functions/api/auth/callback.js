@@ -56,8 +56,12 @@ export async function onRequestGet({ request, env }) {
 
   const email = profile.email.toLowerCase()
   const existing = await getUser(env, email)
+  if (existing?.blocked && !isAdmin(env, email)) {
+    return json({ error: 'This account has been blocked. Contact the site owner if you think this is a mistake.' }, 403)
+  }
   const now = new Date().toISOString()
   const user = {
+    ...existing,
     email,
     name: profile.name || email,
     picture: profile.picture || '',

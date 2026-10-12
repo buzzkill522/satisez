@@ -12,9 +12,11 @@ export async function onRequestPost({ request, env }) {
   if (password.length < 8) return json({ error: 'Use a password of at least 8 characters.' }, 400)
 
   const existing = await getUser(env, email)
+  if (existing?.blocked) return json({ error: 'This account has been blocked. Contact the site owner if you think this is a mistake.' }, 403)
   if (existing?.password) return json({ error: 'An account with that email already exists. Sign in instead.' }, 409)
   const now = new Date().toISOString()
   const user = {
+    ...existing,
     email,
     name: name || existing?.name || email.split('@')[0],
     picture: existing?.picture || '',

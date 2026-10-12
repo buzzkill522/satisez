@@ -11,6 +11,7 @@ export async function onRequestPost({ request, env }) {
   // Same message whether the email or the password is wrong, so the form can't be used to probe accounts.
   const bad = () => json({ error: 'Wrong email or password.' }, 401)
   if (!user) return bad()
+  if (user.blocked) return json({ error: 'This account has been blocked. Contact the site owner if you think this is a mistake.' }, 403)
   if (!user.password) return json({ error: 'That account signs in with Google. Use the Google button.' }, 401)
   if (!(await verifyPassword(password, user.password))) return bad()
   await putUser(env, { ...user, lastLogin: new Date().toISOString() })

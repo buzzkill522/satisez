@@ -2,7 +2,11 @@
 //
 // Sessions are a signed cookie (HMAC-SHA256 with SESSION_SECRET), so no database lookup is needed
 // to know who is signed in. Users and their access flag live in the USERS KV namespace:
-//   user:<email> → { email, name, picture, createdAt, lastLogin, access }
+//   user:<email> → { email, name, picture, createdAt, lastLogin, access, admin?, blocked?, premium? }
+//
+// Roles: "owners" are the emails in ADMIN_EMAILS — always admins, and can't be changed from the
+// site. Owners can make other accounts admins (stored as `admin: true` on the record). A record
+// with `blocked: true` can't sign in, and existing sessions stop working.
 //
 // Environment (Pages project → Settings → Variables and secrets / Bindings):
 //   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth client
@@ -69,6 +73,12 @@ export const newSessionPayload = (user) => ({
   exp: Date.now() + SESSION_DAYS * 86400 * 1000,
 })
 
+/** True for the site owners listed in ADMIN_EMAILS. */
+export function isOwner(env, email) {
+  return isAdmin(env, email)
+}
+
+/** True for owners (ADMIN_EMAILS); kept under this name for older callers. */
 export function isAdmin(env, email) {
   return (setting(env, 'ADMIN_EMAILS') || '')
     .split(',')
@@ -90,13 +100,16 @@ export async function putUser(env, user) {
 export async function currentUser(request, env) {
   const session = await verifySession(getCookie(request, SESSION_COOKIE), setting(env, 'SESSION_SECRET'))
   if (!session) return null
-  const admin = isAdmin(env, session.email)
-  const record = admin ? null : await getUser(env, session.email)
+  const owner = isOwner(env, session.email)
+  const record = await getUser(env, session.email)
+  if (record?.blocked && !owner) return null
+  const admin = owner || Boolean(record?.admin)
   return {
     email: session.email,
     name: session.name,
     picture: session.picture,
     admin,
+    owner,
     access: admin || Boolean(record?.access),
     // Premium: admins always; otherwise a paid period that hasn't ended yet.
     premium: admin || isPremium(record),
@@ -106,10 +119,30 @@ export async function currentUser(request, env) {
 
 export const isPremium = (record) => Boolean(record?.premium?.until && Date.parse(record.premium.until) > Date.now())
 
+export const LIFETIME_UNTIL = '2100-01-01T00:00:00.000Z'
+
+/** A blank record for someone who hasn't signed in yet (e.g. an admin gives them Premium first). */
+export const newUserRecord = (email, name = '') => ({
+  email: email.toLowerCase(),
+  name: name || email.split('@')[0],
+  picture: '',
+  createdAt: new Date().toISOString(),
+  lastLogin: '',
+  access: false,
+})
+
+/** Set Premium to end exactly at `until` (ISO), replacing any current period. */
+export async function setPremiumUntil(env, email, until, source) {
+  const user = (await getUser(env, email)) ?? newUserRecord(email)
+  await putUser(env, { ...user, premium: { until, source, grantedAt: new Date().toISOString() } })
+  return until
+}
+
 /** Grant (or extend) premium for `days` from now, or from the current end if still active. */
 export async function grantPremium(env, email, days, source) {
-  const user = (await getUser(env, email)) ?? { email: email.toLowerCase(), name: email.split('@')[0], picture: '', createdAt: new Date().toISOString(), lastLogin: '', access: false }
-  const base = isPremium(user) ? Date.parse(user.premium.until) : Date.now()
+  const user = (await getUser(env, email)) ?? newUserRecord(email)
+  // Extends an active period; a lifetime grant is replaced rather than pushed past 2100.
+  const base = isPremium(user) && user.premium.until !== LIFETIME_UNTIL ? Date.parse(user.premium.until) : Date.now()
   const until = new Date(base + days * 86400 * 1000).toISOString()
   await putUser(env, { ...user, premium: { until, source, grantedAt: new Date().toISOString() } })
   return until

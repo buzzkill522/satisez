@@ -1,14 +1,21 @@
 import type { Question, Section } from './types'
 
 const cache: Partial<Record<Section, Promise<Question[]>>> = {}
+let indexPromise: Promise<Record<Section, string[]>> | null = null
 
+async function getJson<T>(path: string): Promise<T> {
+  const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`)
+  if (!res.ok) throw new Error(`Missing data/${path} — run \`npm run fetch\` first.`)
+  return res.json()
+}
+
+/** Questions are stored one file per domain, listed in data/index.json. */
 export function loadSection(section: Section): Promise<Question[]> {
-  if (!cache[section]) {
-    cache[section] = fetch(`${import.meta.env.BASE_URL}data/${section}.json`).then(async (res) => {
-      if (!res.ok) throw new Error(`Missing data/${section}.json — run \`npm run fetch\` first.`)
-      return (await res.json()) as Question[]
-    })
-  }
+  indexPromise ??= getJson('index.json')
+  cache[section] ??= indexPromise.then(async (index) => {
+    const parts = await Promise.all((index[section] ?? []).map((d) => getJson<Question[]>(`${section}/${d}.json`)))
+    return parts.flat()
+  })
   return cache[section]!
 }
 

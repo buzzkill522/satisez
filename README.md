@@ -24,8 +24,8 @@ npm run fetch     # downloads the question bank into public/data/ (a few minutes
 npm run dev       # http://localhost:5173
 ```
 
-`npm run fetch` talks to College Board's public question-bank API and writes
-`public/data/rw.json` and `public/data/math.json`. Those files are git-ignored (the content belongs
+`npm run fetch` talks to College Board's public question-bank API and writes one JSON file per
+domain under `public/data/` (plus an `index.json`). Those files are git-ignored (the content belongs
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
@@ -42,7 +42,7 @@ The question data is not committed, so the Pages build downloads it itself via `
 2. Build settings:
    - **Production branch:** `main` (or whichever branch you merge to)
    - **Build command:** `npm run build:pages`
-   - **Build output directory:** `dist`
+   - **Build output directory:** `dist` (leaving this blank deploys the raw source → blank page)
    - Node version is picked up from `.nvmrc` (22).
 3. Save and deploy. The first build takes a few minutes while it fetches the bank; later builds
    re-fetch too (there's no cache between Pages builds), which is fine for occasional deploys.

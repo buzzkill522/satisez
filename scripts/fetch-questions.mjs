@@ -5,8 +5,11 @@
 //        npm run fetch -- --limit 50   (quick test)
 //
 // Already-downloaded questions are reused, so re-running is cheap.
+//
+// Output is split per domain (public/data/<section>/<domain>.json + index.json)
+// so no single file comes near Cloudflare Pages' 25 MiB per-file limit.
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 
 const API = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital'
@@ -97,9 +100,14 @@ function normalise(meta, detail, testKey) {
 
 async function main() {
   await mkdir(OUT_DIR, { recursive: true })
+  const index = {}
   for (const test of TESTS) {
-    const outPath = new URL(`${test.key}.json`, OUT_DIR)
-    const existing = existsSync(outPath) ? JSON.parse(await readFile(outPath, 'utf8')) : []
+    const sectionDir = new URL(`${test.key}/`, OUT_DIR)
+    await mkdir(sectionDir, { recursive: true })
+    const existing = []
+    for (const f of existsSync(sectionDir) ? await readdir(sectionDir) : []) {
+      if (f.endsWith('.json')) existing.push(...JSON.parse(await readFile(new URL(f, sectionDir), 'utf8')))
+    }
     const have = new Map(existing.map((q) => [q.id, q]))
 
     console.log(`\n${test.name}: listing questions…`)
@@ -137,9 +145,15 @@ async function main() {
 
     if (results.length === 0) throw new Error(`No ${test.name} questions downloaded — API unreachable or its format changed`)
     results.sort((a, b) => a.id.localeCompare(b.id))
-    await writeFile(outPath, JSON.stringify(results))
-    console.log(`  wrote ${results.length} → public/data/${test.key}.json`)
+    const byDomain = Map.groupBy(results, (q) => q.domain)
+    for (const [domain, qs] of byDomain) {
+      const json = JSON.stringify(qs)
+      await writeFile(new URL(`${domain}.json`, sectionDir), json)
+      console.log(`  wrote ${qs.length} → public/data/${test.key}/${domain}.json (${(json.length / 1e6).toFixed(1)} MB)`)
+    }
+    index[test.key] = [...byDomain.keys()]
   }
+  await writeFile(new URL('index.json', OUT_DIR), JSON.stringify(index))
 }
 
 main().catch((err) => {

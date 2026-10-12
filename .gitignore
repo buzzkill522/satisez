@@ -1,4 +1,4 @@
 node_modules
 dist
 # Question data is fetched locally with `npm run fetch` (College Board content, not redistributed)
-public/data/*.json
+public/data/

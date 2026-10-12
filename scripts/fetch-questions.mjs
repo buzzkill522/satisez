@@ -14,6 +14,8 @@ import { existsSync } from 'node:fs'
 
 const API = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital'
 const IBN_API = 'https://saic.collegeboard.org/disclosed'
+// Kept low: the API appears to throttle bursts, which silently empties responses.
+const CONCURRENCY = 3
 const OUT_DIR = new URL('../public/data/', import.meta.url)
 
 const SAT_EVENT_ID = 99
@@ -51,19 +53,53 @@ async function post(url, body) {
   }
 }
 
-async function get(url) {
-  const res = await fetch(url)
-  if (!res.ok) {
-    httpErrors.set(`GET ${new URL(url).host}`, res.status)
-    return null
-  }
-  return res.json()
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// A few example failures (status + start of body) so the build log shows *why* items were empty.
+const failureSamples = []
+function noteFailure(id, what) {
+  if (failureSamples.length < 5) failureSamples.push(`${id}: ${what}`)
 }
 
-/** Fetch one question's content. Older ("ibn") items live on a separate host; fall back to the main API. */
-async function fetchDetail(meta) {
-  if (meta.external_id) return post(`${API}/get-question`, { external_id: meta.external_id })
-  return (await get(`${IBN_API}/${meta.ibn}.json`)) ?? post(`${API}/get-question`, { external_id: meta.ibn })
+/** One raw attempt at an item's content; returns the parsed JSON or null and notes why. */
+async function tryDetail(meta) {
+  const id = meta.external_id || meta.ibn
+  const attempts = []
+  if (meta.external_id) attempts.push(['POST', `${API}/get-question`, { external_id: meta.external_id }])
+  if (meta.ibn) attempts.push(['GET', `${IBN_API}/${meta.ibn}.json`])
+  if (!meta.external_id && meta.ibn) attempts.push(['POST', `${API}/get-question`, { external_id: meta.ibn }])
+  for (const [method, url, body] of attempts) {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      })
+      const text = await res.text()
+      if (!res.ok) {
+        httpErrors.set(`${method} ${new URL(url).host}`, res.status)
+        noteFailure(id, `${method} ${res.status} ${text.slice(0, 120).replace(/\s+/g, ' ')}`)
+        continue
+      }
+      const json = text ? JSON.parse(text) : null
+      const empty = json == null || (Array.isArray(json) ? json.length === 0 : Object.keys(json).length === 0)
+      if (!empty) return json
+      noteFailure(id, `${method} 200 but empty body: ${text.slice(0, 60)}`)
+    } catch (err) {
+      noteFailure(id, `${method} ${err.message}`)
+    }
+  }
+  return null
+}
+
+/** Fetch one question's content, backing off and retrying when the API throttles or returns nothing. */
+async function fetchDetail(meta, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    const detail = await tryDetail(meta)
+    if (detail) return detail
+    await sleep(1500 * 2 ** i)
+  }
+  return null
 }
 
 /** Normalise both API shapes into the format the site consumes. */
@@ -145,7 +181,7 @@ async function main() {
     console.log(`  ${metas.length} questions total, ${have.size} cached`)
 
     const results = []
-    const stats = { cached: 0, fetched: 0, empty: 0, error: 0, ibn: 0 }
+    const stats = { cached: 0, fetched: 0, retried: 0, empty: 0, error: 0, ibn: 0 }
     let done = 0
     const queue = [...metas]
     async function worker() {
@@ -159,7 +195,7 @@ async function main() {
           try {
             q = normalise(meta, await fetchDetail(meta), test.key)
             if (q) stats.fetched++
-            else stats.empty++
+            else failed.push(meta)
           } catch (err) {
             stats.error++
             console.warn(`  ! failed ${id}: ${err.message}`)
@@ -169,9 +205,35 @@ async function main() {
         if (++done % 250 === 0) console.log(`  ${done}/${metas.length}`)
       }
     }
-    await Promise.all(Array.from({ length: 8 }, worker))
+    const failed = []
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker))
+
+    // Second pass: one at a time with a pause, in case the first pass was being rate-limited.
+    if (failed.length) {
+      console.log(`  retrying ${failed.length} empty items slowly…`)
+      // If retries keep failing it isn't throttling; stop rather than blow the build time limit.
+      let streak = 0
+      for (const [i, meta] of failed.entries()) {
+        if (streak >= 20) {
+          console.warn(`  20 retries in a row failed — giving up on the remaining ${failed.length - i}`)
+          stats.empty += failed.length - i
+          break
+        }
+        await sleep(400)
+        const q = normalise(meta, await fetchDetail(meta, 4), test.key)
+        if (q) {
+          results.push(q)
+          stats.fetched++
+          stats.retried++
+          streak = 0
+        } else {
+          stats.empty++
+          streak++
+        }
+      }
+    }
     console.log(
-      `  saved ${results.length}/${metas.length} (cached ${stats.cached}, fetched ${stats.fetched}, ` +
+      `  saved ${results.length}/${metas.length} (cached ${stats.cached}, fetched ${stats.fetched} incl. ${stats.retried} on retry, ` +
         `no content ${stats.empty}, errors ${stats.error}; ${stats.ibn} were older "ibn" items)`,
     )
 
@@ -188,6 +250,7 @@ async function main() {
     if (missing.length) console.warn(`  WARNING: no questions saved for domain(s) ${missing.join(', ')}`)
   }
   await writeFile(new URL('index.json', OUT_DIR), JSON.stringify(index))
+  if (failureSamples.length) console.warn(`\nExample failures:\n  ${failureSamples.join('\n  ')}`)
   if (httpErrors.size) console.warn(`\nHTTP errors seen: ${[...httpErrors].map(([k, v]) => `${k} → ${v}`).join(', ')}`)
 }
 

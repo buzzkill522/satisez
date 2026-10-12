@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Question } from '../lib/types'
-import { DIFFICULTY_NAMES, SECTION_NAMES } from '../lib/types'
+import { DIFFICULTY_NAMES, SECTION_NAMES, domainRank, skillRank } from '../lib/types'
 import { loadAll } from '../lib/data'
 import { latestByQuestion, store, useStore } from '../lib/store'
 import { formatTime } from '../components/Timer'
@@ -8,6 +8,8 @@ import { Stat } from './Practice'
 
 interface Bucket {
   name: string
+  domain: string
+  skill: string
   attempted: number
   correct: number
   total: number
@@ -30,7 +32,7 @@ export default function Stats() {
       const m = new Map<string, Bucket>()
       for (const q of all) {
         const k = key(q)
-        const b = m.get(k) ?? { name: name(q), attempted: 0, correct: 0, total: 0 }
+        const b = m.get(k) ?? { name: name(q), domain: q.domain, skill: q.skillName, attempted: 0, correct: 0, total: 0 }
         b.total++
         const a = latest.get(q.id)
         if (a) {
@@ -44,7 +46,9 @@ export default function Stats() {
     return {
       section: make((q) => q.section, (q) => SECTION_NAMES[q.section]),
       difficulty: make((q) => q.section + q.difficulty, (q) => `${SECTION_NAMES[q.section]} · ${DIFFICULTY_NAMES[q.difficulty]}`),
-      skill: make((q) => q.skill, (q) => `${q.domainName} › ${q.skillName}`),
+      skill: make((q) => q.skill, (q) => `${q.domainName} › ${q.skillName}`).sort(
+        (a, b) => domainRank(a.domain) - domainRank(b.domain) || skillRank(a.skill) - skillRank(b.skill),
+      ),
     }
   }, [all, latest])
 

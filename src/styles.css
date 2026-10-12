@@ -88,10 +88,17 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; 
 /* Filters */
 .filters { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; align-self: start; position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow: auto; font-size: .92rem; }
 .filter-group { margin-bottom: 1.1rem; }
-.filter-group > label { display: block; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: .4rem; }
+.filter-title { display: block; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: .4rem; }
 .check { display: flex; gap: .45rem; align-items: center; padding: .15rem 0; cursor: pointer; }
 .check.small { font-size: .85rem; color: var(--muted); }
-.skills { padding-left: 1.4rem; }
+.skills { padding-left: 1.4rem; margin-bottom: .35rem; }
+.filter-head { display: flex; align-items: baseline; justify-content: space-between; }
+.filter-head .filter-title { margin-bottom: .4rem; }
+.filter-head .link { padding: 0; font-size: .8rem; }
+.hint { margin: -.2rem 0 .4rem; }
+.domain-name { font-weight: 600; }
+.check .grow { flex: 1; }
+.check .count { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 400; }
 .seg { display: flex; gap: .3rem; flex-wrap: wrap; }
 .seg button { flex: 1; padding: .4rem .5rem; }
 .seg button.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }

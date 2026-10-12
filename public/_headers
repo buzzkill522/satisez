@@ -1,0 +1,3 @@
+# Cloudflare Pages: always revalidate question data so a new deploy shows up immediately.
+/data/*
+  Cache-Control: no-cache

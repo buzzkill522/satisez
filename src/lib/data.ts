@@ -4,7 +4,7 @@ const cache: Partial<Record<Section, Promise<Question[]>>> = {}
 let indexPromise: Promise<Record<Section, string[]>> | null = null
 
 async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`)
+  const res = await fetch(`${import.meta.env.BASE_URL}data/${path}`, { cache: 'no-cache' })
   if (!res.ok) throw new Error(`Missing data/${path} — run \`npm run fetch\` first.`)
   return res.json()
 }

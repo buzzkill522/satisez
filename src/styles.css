@@ -775,3 +775,6 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 .g-sample-q { margin: .75rem -1.5rem -1.35rem; border-top: 1px solid var(--brand-100); padding: 1rem 0 .5rem; }
 .g-sample-q .bb-question.split { grid-template-columns: 1fr 10px 1fr; }
 .g-sample-q .bb-divider { min-height: 0; }
+
+/* Embedded guide samples: do not reveal the difficulty tag line */
+.g-sample .bb-tags { display: none; }

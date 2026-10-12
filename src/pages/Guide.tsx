@@ -160,8 +160,8 @@ export function GuideSkillPage() {
         skill={s}
         which="before"
         difficulty="H"
-        title="Warm-up: try a hard one first"
-        blurb="Attempt it cold, before reading the strategy, so you can see what the steps fix. It's a real question from the bank."
+        title="Before you read: try this one"
+        blurb="Attempt it cold, before the strategy, so you can see what the steps fix. It's a real question from the bank."
       />
 
       <section className="g-section">
@@ -190,7 +190,7 @@ export function GuideSkillPage() {
         </ol>
       </ContentSection>
 
-      <ContentSection title="Common traps" filled={s.traps.length > 0} isAdmin={isAdmin}>
+      <ContentSection title="Common traps" filled={false} isAdmin={false}>
         <ul className="g-traps">
           {s.traps.map((t, k) => (
             <li key={k}>{t}</li>
@@ -214,8 +214,8 @@ export function GuideSkillPage() {
         skill={s}
         which="after"
         difficulty="M"
-        title="Now apply it: a medium one"
-        blurb="Run the steps in order — clues, tone, subject, predict, eliminate — before you look at the choices."
+        title="Now apply the steps"
+        blurb="Run them in order before you look at the choices."
       />
 
       <div className="g-actions">

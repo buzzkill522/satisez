@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "satisez",
+  "compatibility_date": "2025-09-01",
+  // Static site only: serve the Vite build output, no Worker script.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

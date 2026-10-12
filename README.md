@@ -29,7 +29,12 @@ npm run dev       # http://localhost:5173
 to College Board); re-running the script only downloads questions you don't already have.
 `npm run fetch -- --limit 20` grabs a small sample for a quick test.
 
-## Deploying to Cloudflare Pages
+## Deploying to Cloudflare (Workers static assets)
+
+`wrangler.jsonc` serves `dist/` as a static site. In Workers & Pages → Create → import this repo:
+build command `npm run build:pages`, deploy command `npx wrangler deploy`.
+
+## Deploying to Cloudflare Pages (alternative)
 
 The question data is not committed, so the Pages build downloads it itself via `build:pages`.
 

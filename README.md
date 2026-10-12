@@ -31,16 +31,17 @@ to College Board); re-running the script only downloads questions you don't alre
 
 ## AI tutor ("Ask about this question")
 
-After checking an answer, the feedback box has a chat where you can ask a specific doubt. It is
-served by a Cloudflare Pages Function (`functions/api/ask.js`) that holds the API key, so the key
-never reaches the browser. Set two secrets on the Pages project
-(**Settings → Variables and secrets**, type *Secret*, environment *Production*):
+After checking an answer, the feedback box has a chat where you can ask a specific doubt. It runs
+on **Cloudflare Workers AI**, which is free up to a daily allowance — no API key or card. It is
+served by a Pages Function (`functions/api/ask.js`). Setup, once:
 
-- `ANTHROPIC_API_KEY` — from https://console.anthropic.com. The chat uses Claude Haiku 5.5 at low
-  effort with short replies: about $0.0003 per exchange, so a dollar covers ~3,000 questions.
-- `ACCESS_CODE` — any passcode you choose; the site asks for it once per device
+1. Pages project → **Settings → Bindings → Add → Workers AI**, variable name `AI`.
+2. Optional: **Settings → Variables and secrets** → add `ACCESS_CODE` (any passcode) so strangers
+   who find the URL can't use up the daily allowance. The site asks for it once per device.
+3. Redeploy.
 
-Without both, the chat shows an error and nothing is billed. Transcripts are saved per question in
+The default model is `@cf/meta/llama-3.1-8b-instruct` (small and cheap on the allowance); set an
+`AI_MODEL` variable to try another Workers AI text model. Transcripts are saved per question in
 the browser alongside your notes.
 
 ## Deploying to Cloudflare (Workers static assets)

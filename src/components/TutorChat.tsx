@@ -27,7 +27,7 @@ interface Props {
   autoOpen?: boolean
 }
 
-/** "Ask about this question" — a short chat with Claude, with the question and rationale as context. */
+/** "Ask about this question" — a short AI chat with the question and rationale as context. */
 export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
   const { chats } = useStore()
   const chat: ChatMessage[] = chats[q.id] ?? []
@@ -46,10 +46,6 @@ export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
   async function send() {
     const text = draft.trim()
     if (!text || busy) return
-    if (!code) {
-      setNeedCode(true)
-      return
-    }
     const next: ChatMessage[] = [...chat, { role: 'user', content: text }]
     store.setChat(q.id, next)
     setDraft('')
@@ -66,7 +62,9 @@ export function TutorChat({ question: q, studentAnswer, autoOpen }: Props) {
         saveCode('')
         setCode('')
         setNeedCode(true)
-        setError('That passcode was rejected. Enter it again.')
+        setError(code ? 'That passcode was rejected. Enter it again.' : 'This tutor needs a passcode.')
+        store.setChat(q.id, chat) // drop the unsent message; it's still in the box
+        setDraft(text)
         return
       }
       if (!res.ok || !data.reply) {

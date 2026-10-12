@@ -14,9 +14,13 @@ interface AuthState {
   user: User | null
   /** False when the server is missing sign-in settings (or isn't running Functions, e.g. `npm run dev`). */
   configured: boolean
+  /** Names of required Cloudflare settings that aren't set yet. */
+  missing: string[]
+  /** Whether the Workers AI binding for the tutor is connected. */
+  ai: boolean
 }
 
-let state: AuthState = { loading: true, user: null, configured: true }
+let state: AuthState = { loading: true, user: null, configured: true, missing: [], ai: true }
 const listeners = new Set<() => void>()
 const set = (next: AuthState) => {
   state = next
@@ -29,10 +33,10 @@ export function refreshMe() {
   return fetch(`${import.meta.env.BASE_URL}api/me`, { cache: 'no-store' })
     .then(async (res) => {
       if (!res.ok) throw new Error(String(res.status))
-      const data = (await res.json()) as { user: User | null; configured: boolean }
-      set({ loading: false, user: data.user, configured: data.configured })
+      const data = (await res.json()) as { user: User | null; configured: boolean; missing?: string[]; ai?: boolean }
+      set({ loading: false, user: data.user, configured: data.configured, missing: data.missing ?? [], ai: data.ai ?? true })
     })
-    .catch(() => set({ loading: false, user: null, configured: false }))
+    .catch(() => set({ loading: false, user: null, configured: false, missing: [], ai: false }))
 }
 
 export function useAuth(): AuthState {

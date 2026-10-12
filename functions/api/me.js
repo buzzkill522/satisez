@@ -2,5 +2,8 @@
 
 import { json, missingConfig } from '../../server/auth.js'
 
-export const onRequestGet = ({ env, data }) =>
-  json({ user: data.user ?? null, configured: missingConfig(env).length === 0 })
+// `missing` lists setting *names* only (never values), so setup problems are easy to spot.
+export const onRequestGet = ({ env, data }) => {
+  const missing = missingConfig(env)
+  return json({ user: data.user ?? null, configured: missing.length === 0, missing, ai: Boolean(env.AI) })
+}

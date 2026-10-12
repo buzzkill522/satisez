@@ -18,15 +18,29 @@ export function GoogleButton() {
 
 /** What to show instead of question content when the visitor can't load it. */
 export function AccessNotice() {
-  const { loading, user, configured } = useAuth()
+  const { loading, user, configured, missing, ai } = useAuth()
   if (loading) return <p className="muted">Checking your account…</p>
-  if (!configured)
+  if (!configured) {
+    const all = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET', 'ADMIN_EMAILS', 'USERS']
     return (
       <div className="notice">
         <b>Sign-in isn't set up on this deployment yet.</b>
-        <p>Add the Google and session settings in Cloudflare (see the README's "Accounts" section), then redeploy.</p>
+        <p>In Cloudflare → satisez → Settings, add the settings below, then retry the deployment.</p>
+        <ul className="setup-list">
+          {all.map((k) => (
+            <li key={k} className={missing.includes(k) ? 'todo' : 'done'}>
+              <span aria-hidden="true">{missing.includes(k) ? '○' : '✓'}</span> <code>{k}</code>
+              <span className="muted small"> — {k === 'USERS' ? 'KV namespace binding' : 'variable'}</span>
+            </li>
+          ))}
+          <li className={ai ? 'done' : 'todo'}>
+            <span aria-hidden="true">{ai ? '✓' : '○'}</span> <code>AI</code>
+            <span className="muted small"> — Workers AI binding (for the tutor)</span>
+          </li>
+        </ul>
       </div>
     )
+  }
   if (!user)
     return (
       <div className="notice">

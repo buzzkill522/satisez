@@ -406,3 +406,7 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; 
   .gb-short { display: inline; }
   .google-btn { padding: .35rem .75rem; }
 }
+
+.setup-list { list-style: none; padding: 0; margin: .25rem 0 0; display: grid; gap: .3rem; }
+.setup-list .done { color: var(--ok); }
+.setup-list .todo { color: var(--text); }

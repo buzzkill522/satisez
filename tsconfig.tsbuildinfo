@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/FilterPanel.tsx","./src/components/QuestionView.tsx","./src/components/Timer.tsx","./src/lib/data.ts","./src/lib/store.ts","./src/lib/types.ts","./src/pages/Browse.tsx","./src/pages/Home.tsx","./src/pages/Practice.tsx","./src/pages/Stats.tsx"],"version":"5.9.3"}

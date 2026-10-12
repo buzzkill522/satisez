@@ -4,11 +4,10 @@ import type { Filters, Question } from '../lib/types'
 import { MODULE_SPEC, SECTION_NAMES } from '../lib/types'
 import { loadSection, shuffle } from '../lib/data'
 import { latestByQuestion, store, useStore } from '../lib/store'
-import { DEFAULT_FILTERS, FilterPanel, applyFilters } from '../components/FilterPanel'
+import { DEFAULT_FILTERS, applyFilters } from '../components/FilterPanel'
+import { PracticeSetup, type Mode } from '../components/PracticeSetup'
 import { QuestionView } from '../components/QuestionView'
 import { Timer, formatTime } from '../components/Timer'
-
-type Mode = 'practice' | 'timed'
 
 export default function Practice() {
   const [params] = useSearchParams()
@@ -52,40 +51,18 @@ export default function Practice() {
     return <Runner session={session} onExit={() => setSession(null)} />
 
   return (
-    <div className="page with-sidebar">
-      {all && <FilterPanel questions={all} filters={filters} onChange={setFilters} />}
-      <div className="main">
-        <h1>Practice</h1>
-        <div className="seg big">
-          <button className={mode === 'practice' ? 'active' : ''} onClick={() => setMode('practice')}>
-            Practice <small>instant feedback, stopwatch</small>
-          </button>
-          <button className={mode === 'timed' ? 'active' : ''} onClick={() => setMode('timed')}>
-            Timed module <small>{SECTION_NAMES[filters.section]}: {MODULE_SPEC[filters.section].questions} Qs / {MODULE_SPEC[filters.section].minutes} min</small>
-          </button>
-        </div>
-        {mode === 'practice' && (
-          <label className="row">
-            Questions:
-            <input
-              type="number"
-              min={1}
-              max={200}
-              value={count}
-              onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </label>
-        )}
-        <p className="muted">
-          {all ? `${pool.length.toLocaleString()} questions match your filters` : 'Loading question bank…'}
-        </p>
-        <button className="primary large" onClick={start} disabled={!pool.length}>
-          Start
-        </button>
-        <p className="muted small">
-          Shortcuts: <kbd>A</kbd>–<kbd>D</kbd> select · <kbd>Enter</kbd> submit · <kbd>←</kbd>/<kbd>→</kbd> navigate
-        </p>
-      </div>
+    <div className="page setup-page">
+      <PracticeSetup
+        questions={all}
+        filters={filters}
+        onChange={setFilters}
+        mode={mode}
+        setMode={setMode}
+        count={count}
+        setCount={setCount}
+        poolCount={pool.length}
+        onStart={start}
+      />
     </div>
   )
 }

@@ -1,16 +1,18 @@
 import type { Difficulty, Filters, Question, Section } from '../lib/types'
 import { DIFFICULTY_NAMES, SECTION_NAMES, domainRank, skillRank } from '../lib/types'
 
-interface Props {
-  questions: Question[]
-  filters: Filters
-  onChange: (f: Filters) => void
-}
+export const toggleIn = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
 
-export function FilterPanel({ questions, filters, onChange }: Props) {
+/**
+ * Everything a filter UI needs: domains and skills in College Board order, counts that follow the
+ * difficulty filter, and the domain/skill toggles (checking a domain covers all its skills; unticking
+ * one skill of a checked domain swaps the domain for its other skills, so controls always mean what
+ * they show). Shared by the Browse sidebar and the Practice setup flow.
+ */
+export function useFilterModel(questions: Question[], filters: Filters, onChange: (f: Filters) => void) {
   const domainMap = new Map<string, string>()
   const skillMap = new Map<string, { name: string; domain: string }>()
-  const counts = new Map<string, number>() // by domain code and by skill code
+  const counts = new Map<string, number>() // by domain code and by `skill:<code>`
   for (const q of questions) {
     domainMap.set(q.domain, q.domainName)
     skillMap.set(q.skill, { name: q.skillName, domain: q.domain })
@@ -20,32 +22,39 @@ export function FilterPanel({ questions, filters, onChange }: Props) {
   }
   const domains = [...domainMap].sort(([a], [b]) => domainRank(a) - domainRank(b))
   const skills = [...skillMap].sort(([, a], [, b]) => skillRank(a.name) - skillRank(b.name))
-  const skillsOf = (domain: string) => skills.filter(([, s]) => s.domain === domain).map(([code]) => code)
+  const skillsOf = (domain: string) => skills.filter(([, s]) => s.domain === domain)
 
-  const toggle = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
-
-  // Checking a domain covers all its skills. Unticking one skill of a checked domain
-  // swaps the domain for its other skills, so the checkboxes always mean what they show.
   function toggleDomain(code: string) {
-    const own = new Set(skillsOf(code))
-    onChange({
-      ...filters,
-      domains: toggle(filters.domains, code),
-      skills: filters.skills.filter((s) => !own.has(s)),
-    })
+    const own = new Set(skillsOf(code).map(([c]) => c))
+    onChange({ ...filters, domains: toggleIn(filters.domains, code), skills: filters.skills.filter((s) => !own.has(s)) })
   }
   function toggleSkill(code: string, domain: string) {
     if (filters.domains.includes(domain)) {
       onChange({
         ...filters,
         domains: filters.domains.filter((d) => d !== domain),
-        skills: [...filters.skills, ...skillsOf(domain).filter((s) => s !== code)],
+        skills: [...filters.skills, ...skillsOf(domain).map(([c]) => c).filter((s) => s !== code)],
       })
     } else {
-      onChange({ ...filters, skills: toggle(filters.skills, code) })
+      onChange({ ...filters, skills: toggleIn(filters.skills, code) })
     }
   }
+  const skillChecked = (code: string, domain: string) => filters.domains.includes(domain) || filters.skills.includes(code)
   const anySelected = filters.domains.length + filters.skills.length > 0
+  const clearFocus = () => onChange({ ...filters, domains: [], skills: [] })
+
+  return { domains, skills, skillsOf, counts, toggleDomain, toggleSkill, skillChecked, anySelected, clearFocus }
+}
+
+interface Props {
+  questions: Question[]
+  filters: Filters
+  onChange: (f: Filters) => void
+}
+
+/** Sidebar filters (Browse page). */
+export function FilterPanel({ questions, filters, onChange }: Props) {
+  const m = useFilterModel(questions, filters, onChange)
 
   return (
     <aside className="filters">
@@ -71,7 +80,7 @@ export function FilterPanel({ questions, filters, onChange }: Props) {
             <button
               key={d}
               className={filters.difficulties.includes(d) ? `active diff-${d}` : ''}
-              onClick={() => onChange({ ...filters, difficulties: toggle(filters.difficulties, d) })}
+              onClick={() => onChange({ ...filters, difficulties: toggleIn(filters.difficulties, d) })}
             >
               {DIFFICULTY_NAMES[d]}
             </button>
@@ -82,34 +91,28 @@ export function FilterPanel({ questions, filters, onChange }: Props) {
       <div className="filter-group">
         <div className="filter-head">
           <div className="filter-title">Domains &amp; skills</div>
-          {anySelected && (
-            <button className="link small" onClick={() => onChange({ ...filters, domains: [], skills: [] })}>
+          {m.anySelected && (
+            <button className="link small" onClick={m.clearFocus}>
               Clear
             </button>
           )}
         </div>
-        {!anySelected && <p className="muted small hint">None selected = all domains</p>}
-        {domains.map(([code, name]) => (
+        {!m.anySelected && <p className="muted small hint">None selected = all domains</p>}
+        {m.domains.map(([code, name]) => (
           <div key={code} className="domain">
             <label className="check domain-name">
-              <input type="checkbox" checked={filters.domains.includes(code)} onChange={() => toggleDomain(code)} />
+              <input type="checkbox" checked={filters.domains.includes(code)} onChange={() => m.toggleDomain(code)} />
               <span className="grow">{name}</span>
-              <span className="count">{counts.get(code) ?? 0}</span>
+              <span className="count">{m.counts.get(code) ?? 0}</span>
             </label>
             <div className="skills">
-              {skills
-                .filter(([, s]) => s.domain === code)
-                .map(([skill, s]) => (
-                  <label key={skill} className="check small">
-                    <input
-                      type="checkbox"
-                      checked={filters.domains.includes(code) || filters.skills.includes(skill)}
-                      onChange={() => toggleSkill(skill, code)}
-                    />
-                    <span className="grow">{s.name}</span>
-                    <span className="count">{counts.get(`skill:${skill}`) ?? 0}</span>
-                  </label>
-                ))}
+              {m.skillsOf(code).map(([skill, s]) => (
+                <label key={skill} className="check small">
+                  <input type="checkbox" checked={m.skillChecked(skill, code)} onChange={() => m.toggleSkill(skill, code)} />
+                  <span className="grow">{s.name}</span>
+                  <span className="count">{m.counts.get(`skill:${skill}`) ?? 0}</span>
+                </label>
+              ))}
             </div>
           </div>
         ))}
@@ -118,27 +121,15 @@ export function FilterPanel({ questions, filters, onChange }: Props) {
       <div className="filter-group">
         <div className="filter-title">Status</div>
         <label className="check">
-          <input
-            type="checkbox"
-            checked={filters.hideAnswered}
-            onChange={(e) => onChange({ ...filters, hideAnswered: e.target.checked })}
-          />
+          <input type="checkbox" checked={filters.hideAnswered} onChange={(e) => onChange({ ...filters, hideAnswered: e.target.checked })} />
           Hide answered
         </label>
         <label className="check">
-          <input
-            type="checkbox"
-            checked={filters.onlyWrong}
-            onChange={(e) => onChange({ ...filters, onlyWrong: e.target.checked })}
-          />
+          <input type="checkbox" checked={filters.onlyWrong} onChange={(e) => onChange({ ...filters, onlyWrong: e.target.checked })} />
           Only ones I got wrong
         </label>
         <label className="check">
-          <input
-            type="checkbox"
-            checked={filters.onlyFlagged}
-            onChange={(e) => onChange({ ...filters, onlyFlagged: e.target.checked })}
-          />
+          <input type="checkbox" checked={filters.onlyFlagged} onChange={(e) => onChange({ ...filters, onlyFlagged: e.target.checked })} />
           Only flagged
         </label>
       </div>

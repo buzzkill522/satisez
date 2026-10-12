@@ -3,6 +3,7 @@ import type { Question } from '../lib/types'
 import { DIFFICULTY_NAMES } from '../lib/types'
 import { checkSpr } from '../lib/data'
 import { store, useStore } from '../lib/store'
+import { TutorChat } from './TutorChat'
 
 interface Props {
   question: Question
@@ -194,6 +195,7 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
               defaultValue={notes[q.id] ?? ''}
               onBlur={(e) => store.setNote(q.id, e.target.value)}
             />
+            <TutorChat question={q} studentAnswer={answer} autoOpen={!isCorrect && Boolean(answer.trim())} />
           </div>
         )}
       </div>

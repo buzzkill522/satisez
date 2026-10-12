@@ -222,6 +222,25 @@ code { background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; 
 .bb-tags { font-family: var(--bb-sans); font-size: .8rem; color: var(--muted); margin-bottom: .6rem; }
 .bb-note { width: 100%; min-height: 56px; margin-top: .75rem; font: inherit; font-family: var(--bb-sans); font-size: .9rem; padding: .5rem .6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
 
+/* Tutor chat inside the feedback box */
+.bb-tutor-open { margin-top: .75rem; font: inherit; font-family: var(--bb-sans); font-size: .9rem; font-weight: 600; color: var(--bb-blue); background: none; border: 1.5px solid var(--bb-blue); border-radius: 999px; padding: .4rem 1rem; cursor: pointer; }
+.bb-tutor { margin-top: .9rem; font-family: var(--bb-sans); font-size: .95rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.bb-tutor-head { display: flex; justify-content: space-between; align-items: center; padding: .5rem .8rem; font-weight: 700; border-bottom: 1px solid var(--border); position: relative; }
+.bb-tutor-head .bb-nav-close { position: static; }
+.bb-tutor-code { padding: .7rem .8rem; border-bottom: 1px solid var(--border); display: flex; gap: .6rem; align-items: flex-end; flex-wrap: wrap; }
+.bb-tutor-code label { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; }
+.bb-tutor-code input { font: inherit; padding: .4rem .6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+.bb-tutor-log { padding: .7rem .8rem; display: flex; flex-direction: column; gap: .5rem; max-height: 22rem; overflow-y: auto; }
+.bb-tutor-hint { margin: 0; color: var(--muted); font-size: .85rem; }
+.bb-msg { max-width: 92%; padding: .5rem .75rem; border-radius: 10px; white-space: pre-wrap; line-height: 1.5; }
+.bb-msg.user { align-self: flex-end; background: var(--bb-blue); color: #fff; border-bottom-right-radius: 3px; }
+.bb-msg.assistant { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+.bb-msg.thinking { color: var(--muted); font-style: italic; }
+.bb-tutor-error { padding: 0 .8rem .4rem; color: var(--bad); font-size: .85rem; }
+.bb-tutor-input { display: flex; gap: .5rem; align-items: center; padding: .6rem .8rem; border-top: 1px solid var(--border); }
+.bb-tutor-input input { flex: 1; font: inherit; padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); color: var(--text); }
+.bb-tutor-input .bb-check { padding: .45rem 1rem; }
+
 /* Bottom bar: name, "Question X of Y" navigator, Back / Next */
 .bb-bottom { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: .7rem 1.5rem; background: var(--panel); border-top: 2px solid var(--bb-ink); }
 .bb-bottom-left { font-weight: 700; }

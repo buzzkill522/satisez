@@ -1,10 +1,17 @@
 import { useSyncExternalStore } from 'react'
 import type { Attempt } from './types'
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 interface State {
   attempts: Attempt[]
   flagged: string[]
   notes: Record<string, string>
+  /** Tutor chat transcript per question. */
+  chats: Record<string, ChatMessage[]>
 }
 
 const KEY = 'satisez.progress.v1'
@@ -12,11 +19,11 @@ const KEY = 'satisez.progress.v1'
 function read(): State {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return { attempts: [], flagged: [], notes: {}, ...JSON.parse(raw) }
+    if (raw) return { attempts: [], flagged: [], notes: {}, chats: {}, ...JSON.parse(raw) }
   } catch {
     /* ignore corrupt storage */
   }
-  return { attempts: [], flagged: [], notes: {} }
+  return { attempts: [], flagged: [], notes: {}, chats: {} }
 }
 
 let state: State = read()
@@ -53,13 +60,19 @@ export const store = {
     else delete notes[qid]
     set({ ...state, notes })
   },
+  setChat(qid: string, chat: ChatMessage[]) {
+    const chats = { ...state.chats }
+    if (chat.length) chats[qid] = chat
+    else delete chats[qid]
+    set({ ...state, chats })
+  },
   reset() {
-    set({ attempts: [], flagged: [], notes: {} })
+    set({ attempts: [], flagged: [], notes: {}, chats: {} })
   },
   export: () => JSON.stringify(state, null, 2),
   import(json: string) {
     const parsed = JSON.parse(json)
-    set({ attempts: [], flagged: [], notes: {}, ...parsed })
+    set({ attempts: [], flagged: [], notes: {}, chats: {}, ...parsed })
   },
 }
 

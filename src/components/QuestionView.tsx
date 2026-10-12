@@ -41,6 +41,8 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
   const [submitted, setSubmitted] = useState(false)
   const [eliminated, setEliminated] = useState<Set<string>>(new Set())
   const [eliminator, setEliminator] = useState(false)
+  // Wrong answers keep the explanation behind a button, so students think first.
+  const [whyOpen, setWhyOpen] = useState(false)
   const { flagged, notes } = useStore()
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
     setSprInput('')
     setSubmitted(false)
     setEliminated(new Set())
+    setWhyOpen(false)
   }, [resetKey, q.id])
 
   const answer = q.type === 'spr' ? sprInput : selected
@@ -188,14 +191,22 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
             <div className="bb-tags">
               {DIFFICULTY_NAMES[q.difficulty]} · {q.domainName} · {q.skillName}
             </div>
-            <div className="bb-rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
+            {isCorrect || whyOpen ? (
+              <>
+                <div className="bb-rationale html" dangerouslySetInnerHTML={{ __html: q.rationale }} />
+                <TutorChat question={q} studentAnswer={answer} autoOpen={whyOpen && Boolean(answer.trim())} />
+              </>
+            ) : (
+              <button className="bb-why" onClick={() => setWhyOpen(true)}>
+                {answer.trim() ? 'Want to know why it’s wrong?' : 'Want to see the explanation?'}
+              </button>
+            )}
             <textarea
               className="bb-note"
               placeholder="Add a note to yourself about this question…"
               defaultValue={notes[q.id] ?? ''}
               onBlur={(e) => store.setNote(q.id, e.target.value)}
             />
-            <TutorChat question={q} studentAnswer={answer} autoOpen={!isCorrect && Boolean(answer.trim())} />
           </div>
         )}
       </div>

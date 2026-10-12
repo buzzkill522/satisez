@@ -886,3 +886,8 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 .g-sample-last.is-ok { color: var(--grow-600); }
 .g-sample-last.is-bad { color: var(--alert-600); }
 .guide-meter .bar, .guide-meter .bar-fill { display: block; }
+
+/* "Want to know why it's wrong?" — the explanation stays hidden until asked for */
+.bb-why, .try-feedback .bb-why { display: inline-flex; align-items: center; gap: .4rem; margin: .75rem 0 .5rem; min-height: 40px; padding: .45rem 1rem; border: 2px solid var(--alert-500); border-radius: 999px; background: var(--surface); color: var(--alert-600); font-family: var(--font-sans); font-weight: 700; font-size: 15px; box-shadow: none; }
+.bb-why:hover { background: var(--alert-100); }
+.try-feedback .bb-why { display: flex; width: fit-content; }

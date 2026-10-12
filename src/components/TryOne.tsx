@@ -24,6 +24,7 @@ const Q = {
 export function TryOne() {
   const [picked, setPicked] = useState<string | null>(null)
   const [checked, setChecked] = useState(false)
+  const [whyOpen, setWhyOpen] = useState(false)
   const correct = picked === Q.answer
 
   return (
@@ -54,8 +55,14 @@ export function TryOne() {
         ) : (
           <div className={`try-feedback ${correct ? 'is-ok' : 'is-bad'}`}>
             <b>{correct ? 'Correct.' : `Not quite — the answer is ${Q.answer}.`}</b>
-            <p>{Q.why[Q.answer]}</p>
-            {!correct && picked && <p className="muted">Why {picked} doesn’t work: {Q.why[picked]}</p>}
+            {correct || whyOpen ? (
+              <>
+                <p>{Q.why[Q.answer]}</p>
+                {!correct && picked && <p className="muted">Why {picked} doesn’t work: {Q.why[picked]}</p>}
+              </>
+            ) : (
+              <button className="bb-why" onClick={() => setWhyOpen(true)}>Want to know why it’s wrong?</button>
+            )}
             <Link className="btn-primary" to="/practice?section=rw&domain=CAS">
               Practise more like this
             </Link>

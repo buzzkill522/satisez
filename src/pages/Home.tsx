@@ -4,6 +4,8 @@ import type { Question } from '../lib/types'
 import { loadAll } from '../lib/data'
 import { latestByQuestion, useStore } from '../lib/store'
 import { MODULE_SPEC, domainRank } from '../lib/types'
+import { HeroMock } from '../components/HeroMock'
+import { TryOne } from '../components/TryOne'
 import { ArrowRightIcon, BookIcon, CalcIcon, ChartIcon, ChatIcon, ClockIcon, FlagIcon, MapIcon, ScreenIcon, SparkIcon } from '../components/Icons'
 
 export default function Home() {
@@ -37,18 +39,31 @@ export default function Home() {
   return (
     <>
       {/* Amanat "stage" band: stays dark in both themes, so dark mode never meets a bright slab. */}
-      <section className="hero">
+      <section className="hero hero-split">
         <div className="hero-inner">
-          <h1>
-            SAT practice that feels like <span className="gold-under">test day</span>.
-          </h1>
-          <p className="lead">
-            Every question from the College Board question bank, inside a screen that works like Bluebook. Practise by
-            skill with instant feedback, sit timed modules with the real clock, and ask a tutor whenever you get stuck.
-          </p>
-          <div className="hero-actions">
-            <Link className="btn-primary" to="/practice">Start practising</Link>
-            <Link className="btn-secondary" to="/guide">Read the guide</Link>
+          <div className="hero-copy">
+            <span className="hero-eyebrow">Free · every official question · no account needed</span>
+            <h1>
+              SAT practice that feels like <span className="gold-under">test day</span>.
+            </h1>
+            <p className="lead">
+              All {counts ? (counts.rw + counts.math).toLocaleString() : '3,700+'} questions from the College Board bank in a
+              screen built like Bluebook — with instant explanations, real module timing and a tutor for the ones you miss.
+            </p>
+            <div className="hero-actions">
+              <Link className="btn-primary" to="/practice">Start practising</Link>
+              <button className="btn-secondary" onClick={() => document.getElementById('try')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                Try a question
+              </button>
+            </div>
+            <ul className="hero-proof">
+              <li><b>29</b> skills, filterable</li>
+              <li><b>2</b> timed module formats</li>
+              <li><b>0</b> sign-ups required</li>
+            </ul>
+          </div>
+          <div className="hero-visual">
+            <HeroMock />
           </div>
         </div>
       </section>
@@ -66,6 +81,12 @@ export default function Home() {
             <div className="stat"><div className="stat-value">{done.toLocaleString()}</div><div className="stat-label">You've answered</div></div>
           </div>
         )}
+
+        <section className="home-section try-section" id="try">
+          <h2>Try one now</h2>
+          <p className="muted">A Words in Context question, the first type you meet on the real test. Pick an answer and check it.</p>
+          <TryOne />
+        </section>
 
         <h2>Jump in</h2>
         <div className="cards">
@@ -151,6 +172,36 @@ export default function Home() {
             <Feature icon={<CalcIcon />} title="Typed Math answers, checked">
               Student-produced responses accept fractions and decimals and are marked the way the test marks them.
             </Feature>
+          </div>
+        </section>
+
+        {/* Progress preview */}
+        <section className="home-section">
+          <div className="split">
+            <div>
+              <h2>Know exactly what to fix</h2>
+              <p className="muted">
+                Every answer feeds a breakdown by domain, skill and difficulty. The Progress page surfaces your weakest
+                skills first, so the next session writes itself.
+              </p>
+              <Link className="glance-link" to="/stats">See your progress <ArrowRightIcon width={18} height={18} /></Link>
+            </div>
+            <div className="preview-card" aria-label="Example of the weakest-skills report">
+              <div className="preview-title">Weakest skills <span className="muted small">example</span></div>
+              {[
+                ['Cross-Text Connections', 42],
+                ['Inferences', 55],
+                ['Nonlinear functions', 61],
+                ['Transitions', 68],
+                ['Boundaries', 74],
+              ].map(([name, pct]) => (
+                <div className="preview-row" key={String(name)}>
+                  <span>{name}</span>
+                  <span className="bar"><span className="bar-fill" style={{ width: `${pct}%` }} /></span>
+                  <b>{pct}%</b>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

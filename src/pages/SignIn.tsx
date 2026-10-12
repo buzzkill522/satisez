@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { GoogleButton } from '../components/AuthGate'
 import { refreshMe, useAuth } from '../lib/auth'
 
@@ -15,6 +15,10 @@ export default function SignIn() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const nav = useNavigate()
+  const [params] = useSearchParams()
+  // /#/signin?next=/upgrade — where to go after signing in (only same-site paths).
+  const rawNext = params.get('next') || '/'
+  const next = /^\/[^/\\]/.test(rawNext) ? rawNext : '/'
 
   if (user)
     return (
@@ -39,7 +43,7 @@ export default function SignIn() {
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) return setError(data.error || `Could not sign in (${res.status}).`)
       await refreshMe()
-      nav('/')
+      nav(next)
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
     } finally {
@@ -64,7 +68,7 @@ export default function SignIn() {
 
         {google && (
           <>
-            <GoogleButton />
+            <GoogleButton next={next} />
             {emailReady && <div className="or"><span>or with email</span></div>}
           </>
         )}

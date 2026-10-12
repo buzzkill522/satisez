@@ -6,9 +6,11 @@ import Browse from './pages/Browse'
 import Stats from './pages/Stats'
 import Admin from './pages/Admin'
 import SignIn from './pages/SignIn'
+import Upgrade from './pages/Upgrade'
 import { GuideIndex, GuideRW, GuideSkillPage } from './pages/Guide'
 import { RequireAdmin } from './components/AuthGate'
-import { signOut, useAuth } from './lib/auth'
+import { RequirePremium } from './components/Paywall'
+import { signOut, useAuth, usePremium } from './lib/auth'
 
 type Theme = 'light' | 'dark'
 const THEME_KEY = 'satisez.theme'
@@ -35,6 +37,7 @@ function useTheme(): [Theme, () => void] {
 export default function App() {
   const [theme, toggleTheme] = useTheme()
   const { user } = useAuth()
+  const { loading, premium } = usePremium()
   return (
     <HashRouter>
       <nav className="topnav">
@@ -45,6 +48,7 @@ export default function App() {
           <NavLink to="/stats">Progress</NavLink>
           <NavLink to="/guide">Guide</NavLink>
           {user?.admin && <NavLink to="/admin">Admin</NavLink>}
+          {!loading && !premium && <NavLink to="/upgrade" className="nav-upgrade">Premium</NavLink>}
         </div>
         <button
           className="theme-toggle"
@@ -59,17 +63,20 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/practice" element={<Practice />} />
-        <Route path="/browse" element={<Browse />} />
+        <Route path="/browse" element={<RequirePremium reason="Browsing and searching the whole question bank is part of Premium. Free accounts get five questions a day on the Practice page."><Browse /></RequirePremium>} />
         <Route path="/stats" element={<Stats />} />
         <Route path="/signin" element={<SignIn />} />
-        <Route path="/guide" element={<GuideIndex />} />
-        <Route path="/guide/rw" element={<GuideRW />} />
-        <Route path="/guide/rw/:slug" element={<GuideSkillPage />} />
+        <Route path="/upgrade" element={<Upgrade />} />
+        <Route path="/guide" element={<RequirePremium reason={GUIDE_REASON}><GuideIndex /></RequirePremium>} />
+        <Route path="/guide/rw" element={<RequirePremium reason={GUIDE_REASON}><GuideRW /></RequirePremium>} />
+        <Route path="/guide/rw/:slug" element={<RequirePremium reason={GUIDE_REASON}><GuideSkillPage /></RequirePremium>} />
         <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
       </Routes>
     </HashRouter>
   )
 }
+
+const GUIDE_REASON = 'The study guide — how the test is built and a step-by-step method for every question type — is for Premium members.'
 
 function AccountMenu() {
   const { loading, user, configured } = useAuth()
@@ -86,6 +93,10 @@ function AccountMenu() {
           <div className="account-name">{user.name}</div>
           <div className="muted small">{user.email}</div>
           {user.admin && <div className="small account-role">Admin</div>}
+          {user.premium && !user.admin && (
+            <div className="small account-role">Premium{user.premiumUntil ? ` until ${new Date(user.premiumUntil).toLocaleDateString()}` : ''}</div>
+          )}
+          {!user.premium && <Link className="small account-upgrade" to="/upgrade" onClick={() => setOpen(false)}>Upgrade to Premium</Link>}
           <button onClick={signOut}>Sign out</button>
         </div>
       )}

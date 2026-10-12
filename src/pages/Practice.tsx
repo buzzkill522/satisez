@@ -8,8 +8,18 @@ import { DEFAULT_FILTERS, applyFilters } from '../components/FilterPanel'
 import { PracticeSetup, type Mode } from '../components/PracticeSetup'
 import { QuestionView } from '../components/QuestionView'
 import { Timer, formatTime } from '../components/Timer'
+import { DailyFive } from '../components/DailyFive'
+import { usePremium } from '../lib/auth'
 
 export default function Practice() {
+  const { loading, premium } = usePremium()
+  if (loading) return <div className="page"><p className="muted">One moment…</p></div>
+  if (!premium) return <DailyFive />
+  return <FullPractice />
+}
+
+/** The paid practice flow: choose filters and a mode from the whole bank. */
+function FullPractice() {
   const [params] = useSearchParams()
   const [filters, setFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
@@ -67,13 +77,20 @@ export default function Practice() {
   )
 }
 
-interface Session {
+export interface Session {
   mode: Mode
   questions: Question[]
   limit?: number
 }
 
-function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
+interface RunnerProps {
+  session: Session
+  onExit: () => void
+  /** Called after each answer with how many distinct questions are answered so far. */
+  onAnswered?: (answered: number, total: number) => void
+}
+
+export function Runner({ session, onExit, onAnswered }: RunnerProps) {
   const { questions, mode, limit } = session
   const [idx, setIdx] = useState(0)
   const [finished, setFinished] = useState(false)
@@ -91,10 +108,14 @@ function Runner({ session, onExit }: { session: Session; onExit: () => void }) {
   const onAnswer = useCallback(
     (answer: string, correct: boolean) => {
       const seconds = Math.round((Date.now() - qStart.current) / 1000)
-      setResults((r) => ({ ...r, [q.id]: { answer, correct, seconds } }))
+      setResults((r) => {
+        const next = { ...r, [q.id]: { answer, correct, seconds } }
+        onAnswered?.(Object.keys(next).length, questions.length)
+        return next
+      })
       store.recordAttempt({ qid: q.id, answer, correct, seconds, at: Date.now() })
     },
-    [q.id],
+    [q.id, onAnswered, questions.length],
   )
 
   const finish = useCallback(() => setFinished(true), [])

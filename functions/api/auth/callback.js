@@ -16,7 +16,9 @@ export async function onRequestGet({ request, env }) {
   if (url.searchParams.get('error')) return backHome({ 'set-cookie': clearState }) // user cancelled
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
-  if (!code || !state || state !== getCookie(request, 'oauth_state')) {
+  // The cookie holds `<state>|<next path>` (see login.js).
+  const [savedState, next = '/'] = (getCookie(request, 'oauth_state') || '').split('|')
+  if (!code || !state || state !== savedState) {
     return json({ error: 'Sign-in expired or was tampered with. Go back and try again.' }, 400)
   }
 
@@ -66,7 +68,8 @@ export async function onRequestGet({ request, env }) {
   await putUser(env, user)
 
   const token = await signSession(newSessionPayload(user), setting(env, 'SESSION_SECRET'))
-  const headers = new Headers({ location: '/' })
+  // The app uses hash routes, so /upgrade becomes /#/upgrade.
+  const headers = new Headers({ location: next && next !== '/' ? `/#${next}` : '/' })
   headers.append('set-cookie', sessionCookie(token))
   headers.append('set-cookie', clearState)
   return new Response(null, { status: 302, headers })

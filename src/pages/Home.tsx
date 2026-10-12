@@ -2,26 +2,37 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Question } from '../lib/types'
 import { loadAll } from '../lib/data'
+import { usePremium } from '../lib/auth'
+import { FREE_PERKS, PREMIUM_PERKS } from '../components/Paywall'
+import pricing from '../../server/pricing.json'
 import { latestByQuestion, useStore } from '../lib/store'
 import { MODULE_SPEC, domainRank } from '../lib/types'
 import { HeroMock } from '../components/HeroMock'
 import { TryOne } from '../components/TryOne'
-import { ArrowRightIcon, BookIcon, CalcIcon, ChartIcon, ChatIcon, ClockIcon, FlagIcon, MapIcon, ScreenIcon, SparkIcon } from '../components/Icons'
+import { ArrowRightIcon, BookIcon, CalcIcon, ChartIcon, ChatIcon, CheckIcon, ClockIcon, FlagIcon, MapIcon, ScreenIcon, SparkIcon } from '../components/Icons'
 
 export default function Home() {
   const [all, setAll] = useState<Question[] | null>(null)
+  const [counts, setCounts] = useState<{ rw: number; math: number } | null>(null)
   const [error, setError] = useState('')
   const { attempts } = useStore()
+  const { loading, premium } = usePremium()
   const done = latestByQuestion(attempts).size
 
+  // Totals come from the public index; the per-domain breakdown needs the bank itself (Premium).
   useEffect(() => {
-    loadAll().then(setAll).catch((e) => setError(e.message))
+    fetch(`${import.meta.env.BASE_URL}data/index.json`, { cache: 'no-cache' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('No question data found.')
+        const index = (await res.json()) as { counts?: { rw?: number; math?: number } }
+        if (index.counts) setCounts({ rw: index.counts.rw ?? 0, math: index.counts.math ?? 0 })
+      })
+      .catch((e) => setError(e.message))
   }, [])
-
-  const counts = useMemo(() => {
-    if (!all) return null
-    return { rw: all.filter((q) => q.section === 'rw').length, math: all.filter((q) => q.section === 'math').length }
-  }, [all])
+  useEffect(() => {
+    if (loading || !premium) return
+    loadAll().then(setAll).catch(() => {})
+  }, [loading, premium])
 
   /** Questions per domain, in College Board order, for the bank breakdown. */
   const byDomain = useMemo(() => {
@@ -42,16 +53,17 @@ export default function Home() {
       <section className="hero hero-split">
         <div className="hero-inner">
           <div className="hero-copy">
-            <span className="hero-eyebrow">Free · every official question · no account needed</span>
+            <span className="hero-eyebrow">5 free questions a day · no account needed</span>
             <h1>
               SAT practice that feels like <span className="gold-under">test day</span>.
             </h1>
             <p className="lead">
-              All {counts ? (counts.rw + counts.math).toLocaleString() : '3,700+'} questions from the College Board bank in a
+              {counts ? (counts.rw + counts.math).toLocaleString() : '3,700+'} questions from the College Board bank in a
               screen built like Bluebook — with instant explanations, real module timing and a tutor for the ones you miss.
+              Five are free every day; Premium opens the rest and the study guide.
             </p>
             <div className="hero-actions">
-              <Link className="btn-primary" to="/practice">Start practising</Link>
+              <Link className="btn-primary" to="/practice">{premium ? 'Start practising' : "Do today's 5 free questions"}</Link>
               <button className="btn-secondary" onClick={() => document.getElementById('try')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
                 Try a question
               </button>
@@ -59,7 +71,7 @@ export default function Home() {
             <ul className="hero-proof">
               <li><b>29</b> skills, filterable</li>
               <li><b>2</b> timed module formats</li>
-              <li><b>0</b> sign-ups required</li>
+              <li><b>5</b> free questions, every day</li>
             </ul>
           </div>
           <div className="hero-visual">
@@ -121,6 +133,28 @@ export default function Home() {
             <p>Accuracy by skill and difficulty, weakest areas, timing and streaks.</p>
           </Link>
         </div>
+
+        {/* Free vs Premium */}
+        {!premium && (
+          <section className="home-section">
+            <h2>Free, or everything</h2>
+            <p className="muted">Try the site with today's five. When you're ready to cover every skill, Premium opens the whole bank and the guide.</p>
+            <div className="compare">
+              <div className="compare-col">
+                <h3>Free</h3>
+                <div className="compare-price">₹0 / $0</div>
+                <ul>{FREE_PERKS.map((p) => <li key={p}><CheckIcon width={18} height={18} /> {p}</li>)}</ul>
+                <Link className="btn-secondary" to="/practice">Do today's 5</Link>
+              </div>
+              <div className="compare-col premium">
+                <h3>Premium</h3>
+                <div className="compare-price"><s>₹{pricing.plans.monthly.INR.list}</s> ₹{pricing.plans.monthly.INR.price} a month · <s>${pricing.plans.monthly.USD.list}</s> ${pricing.plans.monthly.USD.price} a month</div>
+                <ul>{PREMIUM_PERKS.map((p) => <li key={p}><CheckIcon width={18} height={18} /> {p}</li>)}</ul>
+                <Link className="btn-primary" to="/upgrade">See plans and the launch offer</Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* How it works */}
         <section className="home-section">
@@ -262,8 +296,8 @@ export default function Home() {
       <section className="cta-band">
         <div className="hero-inner">
           <h2>Ready when you are.</h2>
-          <p>Ten questions takes about ten minutes. Start with your weakest skill.</p>
-          <Link className="btn-primary" to="/practice">Start practising</Link>
+          <p>{premium ? 'Ten questions takes about ten minutes. Start with your weakest skill.' : "Today's five take about five minutes. New ones tomorrow."}</p>
+          <Link className="btn-primary" to="/practice">{premium ? 'Start practising' : "Do today's 5"}</Link>
         </div>
       </section>
       <footer className="site-footer">

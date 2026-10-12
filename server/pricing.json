@@ -1,0 +1,7 @@
+{
+  "launchDiscount": "Launch offer",
+  "plans": {
+    "monthly": { "days": 31, "INR": { "list": 499, "price": 299 }, "USD": { "list": 9, "price": 5 } },
+    "yearly":  { "days": 366, "INR": { "list": 2999, "price": 1499 }, "USD": { "list": 49, "price": 24 } }
+  }
+}

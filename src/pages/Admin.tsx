@@ -9,6 +9,8 @@ interface AdminUser {
   access: boolean
   admin: boolean
   hasPassword?: boolean
+  premiumActive?: boolean
+  premium?: { until: string; source: string }
 }
 
 const fmt = (iso: string) => (iso ? new Date(iso).toLocaleString() : '—')
@@ -29,6 +31,20 @@ export default function Admin() {
     load()
   }, [])
 
+  async function setPremium(email: string, premium: boolean) {
+    setError('')
+    const res = await fetch(`${import.meta.env.BASE_URL}api/admin/users`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, premium }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      return setError(data.error || `Could not update (${res.status}).`)
+    }
+    load()
+  }
+
   const shown = (users ?? []).filter(
     (u) => !query || u.email.includes(query.toLowerCase()) || u.name.toLowerCase().includes(query.toLowerCase()),
   )
@@ -40,6 +56,7 @@ export default function Admin() {
       {users && (
         <div className="stats-row">
           <div className="stat"><div className="stat-value">{users.length}</div><div className="stat-label">Registered users</div></div>
+          <div className="stat"><div className="stat-value">{users.filter((u) => u.premiumActive).length}</div><div className="stat-label">On Premium</div></div>
         </div>
       )}
       <p className="muted small">Everyone who has signed in, with Google or with an email and password.</p>
@@ -53,6 +70,7 @@ export default function Admin() {
               <th>Joined</th>
               <th>Last sign-in</th>
               <th>Signs in with</th>
+              <th>Premium</th>
             </tr>
           </thead>
           <tbody>
@@ -70,6 +88,20 @@ export default function Admin() {
                 <td className="muted small">{fmt(u.createdAt)}</td>
                 <td className="muted small">{fmt(u.lastLogin)}</td>
                 <td className="muted small">{u.hasPassword ? 'Email + password' : 'Google'}</td>
+                <td className="small">
+                  {u.admin ? (
+                    <span className="muted">Always</span>
+                  ) : (
+                    <div className="row tight">
+                      {u.premiumActive ? (
+                        <span className="badge premium-badge" title={u.premium?.source ? `via ${u.premium.source}` : ''}>Until {u.premium ? new Date(u.premium.until).toLocaleDateString() : '—'}</span>
+                      ) : (
+                        <span className="muted">Free</span>
+                      )}
+                      <button className="link" onClick={() => setPremium(u.email, !u.premiumActive)}>{u.premiumActive ? 'Remove' : 'Grant a year'}</button>
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

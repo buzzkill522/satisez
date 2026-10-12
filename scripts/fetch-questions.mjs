@@ -257,6 +257,7 @@ async function main() {
       console.log(`  wrote ${qs.length} → public/data/${test.key}/${domain}.json (${(json.length / 1e6).toFixed(1)} MB)`)
     }
     index[test.key] = [...byDomain.keys()]
+    index.counts = { ...(index.counts ?? {}), [test.key]: results.length }
     const missing = test.domains.split(',').filter((d) => !byDomain.has(d))
     if (missing.length) console.warn(`  WARNING: no questions saved for domain(s) ${missing.join(', ')}`)
   }

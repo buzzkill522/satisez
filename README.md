@@ -52,6 +52,30 @@ Two methods, both at `/#/signin`:
 
 `ADMIN_EMAILS` (comma-separated) marks admins; they see the **Admin** page listing every account.
 
+## Premium and payments
+
+Free visitors get **today's five questions** (the same five for everyone, picked from the date by
+`server/daily.js` and served by `/api/daily`). After the fifth answer they see the paywall. The full
+question bank (`/data/*` except `index.json`), Browse, the full Practice setup and the whole Guide
+are for **Premium** accounts; the tutor, flags, notes and the Progress page stay free. Admins always
+have Premium, and the Admin page can grant or remove a year for any account.
+
+Prices live in `server/pricing.json` (regular price, launch price, days) — edit them there. Payments:
+
+- **Razorpay** (India, INR — UPI, cards, net banking). Settings: `RAZORPAY_KEY_ID`,
+  `RAZORPAY_KEY_SECRET` (Secret), `RAZORPAY_WEBHOOK_SECRET` (Secret). Add a webhook in the Razorpay
+  dashboard pointing at `https://satisez.com/api/webhooks/razorpay` for the `payment.captured` event.
+  The browser also confirms each payment through `/api/checkout/razorpay-verify`, so premium is on
+  the moment the payment succeeds.
+- **Paddle** (everywhere else, USD — cards, PayPal). Create two one-time prices (monthly and yearly)
+  in Paddle, then set `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_MONTHLY`, `PADDLE_PRICE_YEARLY`,
+  `PADDLE_WEBHOOK_SECRET` (Secret) and, while testing, `PADDLE_ENV=sandbox`. Add a notification
+  destination for `transaction.completed` pointing at `https://satisez.com/api/webhooks/paddle`.
+  Premium is granted when that webhook arrives (usually within a few seconds).
+
+Without accounts configured (no `SESSION_SECRET`), nothing is gated, so local `npm run dev` shows
+everything.
+
 ## AI tutor ("Ask about this question")
 
 After checking an answer, the feedback box has a chat where you can ask a specific doubt. It runs

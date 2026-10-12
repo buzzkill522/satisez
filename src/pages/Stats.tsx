@@ -5,6 +5,8 @@ import { loadAll } from '../lib/data'
 import { latestByQuestion, store, useStore } from '../lib/store'
 import { formatTime } from '../components/Timer'
 import { Stat } from './Practice'
+import { usePremium } from '../lib/auth'
+import { Link } from 'react-router-dom'
 
 interface Bucket {
   name: string
@@ -19,10 +21,13 @@ export default function Stats() {
   const { attempts, flagged } = useStore()
   const [all, setAll] = useState<Question[]>([])
   const [error, setError] = useState('')
+  const { loading, premium } = usePremium()
 
+  // The per-skill breakdown needs the whole bank, which only Premium can load.
   useEffect(() => {
+    if (loading || !premium) return
     loadAll().then(setAll).catch((e) => setError(e.message))
-  }, [])
+  }, [loading, premium])
 
   const byId = useMemo(() => new Map(all.map((q) => [q.id, q])), [all])
   const latest = useMemo(() => latestByQuestion(attempts), [attempts])
@@ -93,12 +98,21 @@ export default function Stats() {
         </>
       )}
 
-      <h2>By section</h2>
-      <BucketTable buckets={groups.section} />
-      <h2>By difficulty</h2>
-      <BucketTable buckets={groups.difficulty} />
-      <h2>By skill</h2>
-      <BucketTable buckets={groups.skill} />
+      {premium ? (
+        <>
+          <h2>By section</h2>
+          <BucketTable buckets={groups.section} />
+          <h2>By difficulty</h2>
+          <BucketTable buckets={groups.difficulty} />
+          <h2>By skill</h2>
+          <BucketTable buckets={groups.skill} />
+        </>
+      ) : (
+        <div className="notice">
+          <b>Breakdown by skill and difficulty is part of Premium.</b>
+          <p>With the full bank unlocked, this page shows your accuracy for every domain, skill and difficulty, and your weakest skills first. <Link to="/upgrade">See Premium</Link>.</p>
+        </div>
+      )}
 
       <h2>Recent</h2>
       <table className="qtable">

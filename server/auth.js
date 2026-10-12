@@ -97,9 +97,38 @@ export async function currentUser(request, env) {
     name: session.name,
     picture: session.picture,
     admin,
-    // Admins always have access; everyone else needs it switched on from the Admin page.
     access: admin || Boolean(record?.access),
+    // Premium: admins always; otherwise a paid period that hasn't ended yet.
+    premium: admin || isPremium(record),
+    premiumUntil: record?.premium?.until ?? null,
   }
+}
+
+export const isPremium = (record) => Boolean(record?.premium?.until && Date.parse(record.premium.until) > Date.now())
+
+/** Grant (or extend) premium for `days` from now, or from the current end if still active. */
+export async function grantPremium(env, email, days, source) {
+  const user = (await getUser(env, email)) ?? { email: email.toLowerCase(), name: email.split('@')[0], picture: '', createdAt: new Date().toISOString(), lastLogin: '', access: false }
+  const base = isPremium(user) ? Date.parse(user.premium.until) : Date.now()
+  const until = new Date(base + days * 86400 * 1000).toISOString()
+  await putUser(env, { ...user, premium: { until, source, grantedAt: new Date().toISOString() } })
+  return until
+}
+
+/** Two-letter country of the visitor, from Cloudflare. */
+export const countryOf = (request) => (request.cf?.country || request.headers.get('cf-ipcountry') || '').toUpperCase()
+
+/** HMAC-SHA256 hex, used to verify payment signatures and webhooks. */
+export async function hmacHex(secret, message) {
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message))
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+export const timingSafeEqual = (a, b) => {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false
+  let d = 0
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return d === 0
 }
 
 export const json = (data, status = 200, headers = {}) =>

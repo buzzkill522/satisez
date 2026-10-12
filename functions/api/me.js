@@ -1,9 +1,9 @@
 // GET /api/me — who is signed in (or null). Resolved by the middleware.
 
-import { emailAuthReady, googleAuthReady, json, missingConfig } from '../../server/auth.js'
+import { countryOf, emailAuthReady, googleAuthReady, json, missingConfig } from '../../server/auth.js'
 
 // `missing` lists setting *names* only (never values), so setup problems are easy to spot.
-export const onRequestGet = ({ env, data }) => {
+export const onRequestGet = ({ request, env, data }) => {
   const missing = missingConfig(env)
   return json({
     user: data.user ?? null,
@@ -12,5 +12,6 @@ export const onRequestGet = ({ env, data }) => {
     email: emailAuthReady(env),
     missing,
     ai: Boolean(env.AI),
+    country: countryOf(request),
   })
 }

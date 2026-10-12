@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { signIn, useAuth } from '../lib/auth'
 
-export function GoogleButton() {
+export function GoogleButton({ next }: { next?: string }) {
   return (
-    <button className="google-btn" onClick={signIn}>
+    <button className="google-btn" onClick={() => signIn(next)}>
       <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
         <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.8 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
         <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.8c4.3-4 6.9-9.9 6.9-17.1z" />

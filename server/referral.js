@@ -67,3 +67,26 @@ export async function rewardReferrer(env, { owner, buyer, paymentId }) {
   const referrals = [{ email: buyer.toLowerCase(), at: new Date().toISOString() }, ...(fresh.referrals ?? [])].slice(0, 200)
   await putUser(env, { ...fresh, referrals })
 }
+
+export const MAX_CODES = 5
+const RESERVED = ['ADMIN', 'OWNER', 'SATISEZ', 'SATIS', 'SUPPORT', 'HELP', 'STAFF', 'TEST', 'FREE', 'PREMIUM', 'PRO', 'OFFICIAL', 'RAZORPAY', 'PADDLE', 'COLLEGEBOARD', 'BLUEBOOK']
+
+/**
+ * Premium members (and admins) can pick their own code. The old code keeps pointing at them, so
+ * links already shared still work; to stop people hoarding names each account can hold MAX_CODES.
+ * Resolves to { ok: true, code } or { ok: false, error }.
+ */
+export async function setCustomCode(env, email, raw) {
+  const code = String(raw ?? '').trim().toUpperCase()
+  if (!/^[A-Z0-9]{4,16}$/.test(code)) return { ok: false, error: 'Use 4–16 letters or numbers, no spaces or symbols.' }
+  if (RESERVED.some((w) => new RegExp(`^${w}[0-9]{0,4}$`).test(code))) return { ok: false, error: 'That code is reserved. Try another.' }
+  const user = (await getUser(env, email)) ?? newUserRecord(email)
+  if (user.refCode === code) return { ok: true, code }
+  const holder = await env.USERS.get(`ref:${code}`)
+  if (holder && holder.toLowerCase() !== user.email.toLowerCase()) return { ok: false, error: 'Someone already has that code. Try another.' }
+  const codes = [...new Set([...(user.refCodes ?? []), ...(user.refCode ? [user.refCode] : [])])]
+  if (!holder && codes.length >= MAX_CODES) return { ok: false, error: `You’ve made ${MAX_CODES} codes already, which is the limit. You can switch back to one you’ve used before.` }
+  if (!holder) await env.USERS.put(`ref:${code}`, user.email)
+  await putUser(env, { ...user, refCode: code, refCodes: [...new Set([...codes, code])] })
+  return { ok: true, code }
+}

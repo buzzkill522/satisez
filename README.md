@@ -101,8 +101,8 @@ Prices live in `server/pricing.json` (regular price, launch price, days) — edi
 **Referral codes.** Every account gets a code (Upgrade page, with a share link
 `/#/upgrade?ref=CODE` that fills it in). A first-time buyer who enters a friend's code gets
 `referral.discountPercent` off (10%), and the code's owner gets `referral.rewardDays` of Premium
-(31) once the payment is confirmed; both numbers are in `server/pricing.json`. You can't use your
-own code, and each payment rewards once. Codes apply to ₹ payments; for $ payments create a
+(31) once the payment is confirmed; both numbers are in `server/pricing.json`. Premium members can choose their own code (4–16 letters/numbers, up to 5 per account; old codes
+keep working). You can't use your own code, and each payment rewards once. Codes apply to ₹ payments; for $ payments create a
 percentage discount in Paddle with the same % and set its ID as `PADDLE_REFERRAL_DISCOUNT_ID`.
 
 Without accounts configured (no `SESSION_SECRET`), nothing is gated, so local `npm run dev` shows

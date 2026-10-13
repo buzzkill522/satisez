@@ -4,7 +4,7 @@ import { useAuth, usePremium } from '../lib/auth'
 import { CheckIcon } from '../components/Icons'
 import pricing from '../../server/pricing.json'
 import { useEffect, useState } from 'react'
-import { loadMyReferral, type MyReferral } from '../lib/billing'
+import { loadMyReferral, saveMyCode, type MyReferral } from '../lib/billing'
 
 /** /upgrade — plans, prices and what Premium includes. */
 export default function Upgrade() {
@@ -64,6 +64,25 @@ function ReferralCard() {
   const [ref, setRef] = useState<MyReferral | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [saving, setSaving] = useState(false)
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setSaveError('')
+    try {
+      const r = await saveMyCode(draft)
+      setRef((cur) => (cur ? { ...cur, code: r.code } : cur))
+      loadMyReferral().then(setRef).catch(() => {})
+      setEditing(false)
+    } catch (err) {
+      setSaveError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
   useEffect(() => {
     loadMyReferral().then(setRef).catch((e) => setError(e.message))
   }, [])
@@ -89,10 +108,27 @@ function ReferralCard() {
       </div>
       {ref ? (
         <div className="ref-share">
-          <div className="ref-code">
-            <code>{ref.code}</code>
-            <button onClick={() => copy(ref.code, 'code')}>{copied === 'code' ? 'Copied ✓' : 'Copy code'}</button>
-          </div>
+          {editing ? (
+            <form className="ref-code ref-edit" onSubmit={save}>
+              <input value={draft} onChange={(e) => setDraft(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16))} placeholder="e.g. JAI10" aria-label="Your new code" autoFocus />
+              <button className="primary" type="submit" disabled={saving || draft.length < 4}>{saving ? 'Saving…' : 'Save'}</button>
+              <button type="button" className="link" onClick={() => { setEditing(false); setSaveError('') }}>Cancel</button>
+            </form>
+          ) : (
+            <div className="ref-code">
+              <code>{ref.code}</code>
+              <button onClick={() => copy(ref.code, 'code')}>{copied === 'code' ? 'Copied ✓' : 'Copy code'}</button>
+            </div>
+          )}
+          {saveError && <p className="error small">{saveError}</p>}
+          {!editing && (ref.canCustomize ? (
+            <button className="link ref-customize" onClick={() => { setDraft(ref.code); setEditing(true) }}>
+              Choose your own code{ref.codesLeft <= 2 ? ` (${ref.codesLeft} new code${ref.codesLeft === 1 ? '' : 's'} left)` : ''}
+            </button>
+          ) : (
+            <p className="muted small">Premium members can choose their own code, like <b>JAI10</b>.</p>
+          ))}
+          {editing && <p className="muted small">4–16 letters or numbers. Links you’ve already shared with your old code keep working.</p>}
           <div className="ref-code">
             <input readOnly value={link} aria-label="Your share link" onFocus={(e) => e.target.select()} />
             <button onClick={() => copy(link, 'link')}>{copied === 'link' ? 'Copied ✓' : 'Copy link'}</button>

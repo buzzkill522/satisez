@@ -67,6 +67,12 @@ export interface MyReferral {
   rewardDays: number
   referrals: number
   earnedDays: number
+  /** Premium members can choose their own code. */
+  canCustomize: boolean
+  codesLeft: number
+}
+export async function saveMyCode(code: string): Promise<{ code: string }> {
+  return postJson<{ code: string }>('referral', { code })
 }
 export async function loadMyReferral(): Promise<MyReferral> {
   const res = await fetch(`${import.meta.env.BASE_URL}api/referral`, { cache: 'no-store' })

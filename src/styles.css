@@ -981,3 +981,7 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 .ref-code input { flex: 1; min-width: 0; min-height: 40px; padding: .4rem .7rem; border: 2px solid var(--brand-100); border-radius: var(--radius-xl); background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; }
 .ref-code button { flex: none; white-space: nowrap; }
 @media (max-width: 720px) { .ref-card { grid-template-columns: minmax(0, 1fr); padding: 1.25rem; } .ref-code code { font-size: 20px; } }
+
+.ref-customize { justify-self: start; padding: 0; font-weight: 700; }
+.ref-edit input { font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .1em; text-transform: uppercase; }
+.ref-share .error { margin: 0; }

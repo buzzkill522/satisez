@@ -12,9 +12,11 @@ export async function onRequestPost({ request, env }) {
   if (!timingSafeEqual(expected, request.headers.get('x-razorpay-signature') || '')) return json({ error: 'Bad signature.' }, 401)
   const event = JSON.parse(raw)
   if (event.event === 'payment.captured') {
-    const notes = event.payload?.payment?.entity?.notes ?? {}
+    const payment = event.payload?.payment?.entity ?? {}
+    const notes = payment.notes ?? {}
     const p = pricing.plans[notes.plan]
-    if (notes.email && p) await grantPremium(env, notes.email, p.days, 'razorpay')
+    // Keyed by payment ID: if the browser already confirmed this payment, nothing changes.
+    if (notes.email && p && payment.id) await grantPremium(env, notes.email, p.days, 'razorpay', payment.id)
   }
   return json({ ok: true })
 }

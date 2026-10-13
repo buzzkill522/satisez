@@ -81,7 +81,13 @@ have Premium, and the Admin page can grant or remove a year for any account.
 
 Prices live in `server/pricing.json` (regular price, launch price, days) — edit them there. Payments:
 
-- **Razorpay** (India, INR — UPI, cards, net banking). Settings: `RAZORPAY_KEY_ID`,
+- **Razorpay** (India, INR — UPI, cards, net banking), Standard Web Checkout. Flow: the Upgrade
+  button calls `POST /api/checkout/razorpay` (creates an order on Razorpay; amount from
+  `server/pricing.json`, minimum 100 paise), opens the Razorpay modal with that order, then sends
+  `razorpay_order_id`, `razorpay_payment_id` and `razorpay_signature` to
+  `POST /api/checkout/razorpay-verify`, which checks HMAC-SHA256(order_id|payment_id, key secret)
+  and grants Premium for the plan stored on the order. For local testing copy `.env.example` to
+  `.dev.vars` (git-ignored) and run `npx wrangler pages dev dist`. Settings: `RAZORPAY_KEY_ID`,
   `RAZORPAY_KEY_SECRET` (Secret), `RAZORPAY_WEBHOOK_SECRET` (Secret). Add a webhook in the Razorpay
   dashboard pointing at `https://satisez.com/api/webhooks/razorpay` for the `payment.captured` event.
   The browser also confirms each payment through `/api/checkout/razorpay-verify`, so premium is on

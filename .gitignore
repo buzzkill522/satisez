@@ -4,3 +4,8 @@ dist
 public/data/
 tsconfig.tsbuildinfo
 .wrangler
+# Local secrets — never commit (Cloudflare reads .dev.vars for `wrangler pages dev`)
+.env
+.env.*
+!.env.example
+.dev.vars

@@ -138,13 +138,19 @@ export async function setPremiumUntil(env, email, until, source) {
   return until
 }
 
-/** Grant (or extend) premium for `days` from now, or from the current end if still active. */
-export async function grantPremium(env, email, days, source) {
+/**
+ * Grant (or extend) premium for `days` from now, or from the current end if still active.
+ * Pass `ref` (e.g. a payment ID) to make it idempotent: the same payment confirmed twice — by the
+ * browser and by the webhook, or a retried request — only counts once.
+ */
+export async function grantPremium(env, email, days, source, ref) {
   const user = (await getUser(env, email)) ?? newUserRecord(email)
+  if (ref && user.payments?.includes(ref)) return user.premium?.until ?? null
   // Extends an active period; a lifetime grant is replaced rather than pushed past 2100.
   const base = isPremium(user) && user.premium.until !== LIFETIME_UNTIL ? Date.parse(user.premium.until) : Date.now()
   const until = new Date(base + days * 86400 * 1000).toISOString()
-  await putUser(env, { ...user, premium: { until, source, grantedAt: new Date().toISOString() } })
+  const payments = ref ? [ref, ...(user.payments ?? [])].slice(0, 50) : user.payments
+  await putUser(env, { ...user, payments, premium: { until, source, grantedAt: new Date().toISOString() } })
   return until
 }
 

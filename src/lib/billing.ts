@@ -94,7 +94,7 @@ export async function startCheckout(plan: Plan, currency: Currency, billing: Bil
         theme: { color: '#c2410c' },
         modal: { ondismiss: () => reject(new Error('Payment cancelled.')) },
         handler: (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-          postJson('checkout/razorpay-verify', { orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature, plan })
+          postJson('checkout/razorpay-verify', { orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature })
             .then(() => resolve())
             .catch(reject)
         },

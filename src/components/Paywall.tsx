@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { refreshMe, useAuth, usePremium } from '../lib/auth'
-import { loadBilling, money, percentOff, startCheckout, type Billing, type Currency, type Plan } from '../lib/billing'
+import { checkReferral, discounted, forgetCode, loadBilling, money, percentOff, rememberedCode, startCheckout, type Billing, type Currency, type Plan, type Referral } from '../lib/billing'
 import { CheckIcon } from './Icons'
 
 /** What a free account gets, and what paying unlocks. Shown on the paywall and the Upgrade page. */
@@ -40,6 +40,7 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
   const [currency, setCurrency] = useState<Currency | null>(null)
   const [busy, setBusy] = useState<Plan | null>(null)
   const [message, setMessage] = useState<{ kind: 'ok' | 'bad'; text: string } | null>(null)
+  const [referral, setReferral] = useState<Referral | null>(null)
 
   useEffect(() => {
     loadBilling().then(setBilling).catch((e) => setLoadError(e.message))
@@ -49,13 +50,15 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
   const here = location.pathname + location.search
   const signInLink = `/signin?next=${encodeURIComponent(here === '/signin' ? '/upgrade' : here)}`
   const available = billing ? (cur === 'INR' ? billing.razorpay : billing.paddle) : false
+  // Referral discounts apply to ₹ payments, and to $ payments once a Paddle discount is set up.
+  const refApplies = Boolean(referral && billing && (cur === 'INR' || billing.paddleReferralDiscount))
 
   async function pay(plan: Plan) {
     if (!billing || !user) return
     setBusy(plan)
     setMessage(null)
     try {
-      await startCheckout(plan, cur, billing, user)
+      await startCheckout(plan, cur, billing, user, refApplies ? referral : null)
       // Razorpay is confirmed server-side before this resolves; Paddle's webhook may take a moment.
       let tries = 0
       while (tries++ < 10) {
@@ -66,6 +69,7 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
         await new Promise((r) => setTimeout(r, 1500))
       }
       await refreshMe()
+      if (refApplies) forgetCode()
       setMessage({ kind: 'ok', text: "Payment received — you're on Premium. Thank you!" })
     } catch (e) {
       setMessage({ kind: 'bad', text: (e as Error).message })
@@ -111,7 +115,8 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
       {billing && (
         <div className="plans">
           {(['monthly', 'yearly'] as Plan[]).map((plan) => {
-            const p = billing.pricing.plans[plan][cur]
+            const base = billing.pricing.plans[plan][cur]
+            const p = refApplies && referral ? { list: base.list, price: discounted(base.price, referral.percent, cur) } : base
             const off = percentOff(p.list, p.price)
             const perMonth = cur === 'INR' ? Math.round(p.price / 12) : Math.round((p.price / 12) * 100) / 100
             return (
@@ -124,7 +129,7 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
                   <span className="plan-off">{off}% off</span>
                 </div>
                 <div className="muted small">
-                  {billing.pricing.launchDiscount} · {plan === 'yearly' ? `about ${money(perMonth, cur)} a month` : `${billing.pricing.plans.monthly.days} days of access`}
+                  {refApplies && referral ? `${billing.pricing.launchDiscount} + ${referral.percent}% referral` : billing.pricing.launchDiscount} · {plan === 'yearly' ? `about ${money(perMonth, cur)} a month` : `${billing.pricing.plans.monthly.days} days of access`}
                 </div>
                 {user ? (
                   <button className="primary" disabled={!available || busy !== null} onClick={() => pay(plan)}>
@@ -139,6 +144,7 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
         </div>
       )}
       {!billing && !loadError && <p className="muted small">Loading prices…</p>}
+      {billing && <ReferralBox referral={referral} setReferral={setReferral} percent={billing.pricing.referral.discountPercent} usdNote={cur === 'USD' && !billing.paddleReferralDiscount} />}
 
       {billing && !available && (
         <p className="pw-note">
@@ -153,6 +159,66 @@ export function Paywall({ title = 'Unlock everything with Premium', reason, comp
         Prices include the launch discount. Secure checkout by Razorpay (India) and Paddle (everywhere else); we never see your card details.
       </p>
     </div>
+  )
+}
+
+/** "Have a referral code?" — checks the code and shows the discount on the plans above. */
+function ReferralBox({ referral, setReferral, percent, usdNote }: { referral: Referral | null; setReferral: (r: Referral | null) => void; percent: number; usdNote: boolean }) {
+  const { user } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function apply(value: string, quiet = false) {
+    const v = value.trim()
+    if (!v) return
+    setBusy(true)
+    setError('')
+    try {
+      setReferral(await checkReferral(v))
+      setOpen(false)
+    } catch (e) {
+      if (quiet) forgetCode()
+      else setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // A code from a share link is filled in and applied automatically.
+  useEffect(() => {
+    const saved = rememberedCode()
+    if (saved && !referral) {
+      setCode(saved)
+      apply(saved, true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email])
+
+  if (referral)
+    return (
+      <div className="ref-box applied">
+        <span>
+          <b>Referral code {referral.code}</b> · {referral.percent}% off your first purchase
+          {usdNote && <span className="muted"> (applies to ₹ payments)</span>}
+        </span>
+        <button className="link" onClick={() => { setReferral(null); forgetCode(); setCode('') }}>Remove</button>
+      </div>
+    )
+  if (!open)
+    return (
+      <button className="link ref-toggle" onClick={() => setOpen(true)}>
+        Have a referral code? Get {percent}% off
+      </button>
+    )
+  return (
+    <form className="ref-box" onSubmit={(e) => { e.preventDefault(); apply(code) }}>
+      <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Referral code" aria-label="Referral code" autoFocus maxLength={16} />
+      <button type="submit" disabled={busy || !code.trim()}>{busy ? 'Checking…' : 'Apply'}</button>
+      <button type="button" className="link" onClick={() => { setOpen(false); setError('') }}>Cancel</button>
+      {error && <p className="error">{error}</p>}
+    </form>
   )
 }
 

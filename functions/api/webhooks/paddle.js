@@ -2,6 +2,7 @@
 // Signature header: "ts=<unix>;h1=<hex>", signed payload "<ts>:<raw body>".
 
 import { grantPremium, hmacHex, json, setting, timingSafeEqual } from '../../../server/auth.js'
+import { normalizeCode, rewardReferrer } from '../../../server/referral.js'
 import pricing from '../../../server/pricing.json'
 
 export async function onRequestPost({ request, env }) {
@@ -16,7 +17,15 @@ export async function onRequestPost({ request, env }) {
   if (event.event_type === 'transaction.completed') {
     const custom = event.data?.custom_data ?? {}
     const p = pricing.plans[custom.plan]
-    if (custom.email && p) await grantPremium(env, custom.email, p.days, 'paddle')
+    const txn = event.data?.id
+    // Keyed by transaction ID, so a redelivered webhook can't extend Premium twice.
+    if (custom.email && p) {
+      await grantPremium(env, custom.email, p.days, 'paddle', txn ? `paddle:${txn}` : undefined)
+      // The code's owner is looked up here, not taken from the browser.
+      const code = normalizeCode(custom.ref)
+      const owner = code ? await env.USERS.get(`ref:${code}`) : null
+      if (owner && txn) await rewardReferrer(env, { owner, buyer: custom.email, paymentId: `paddle:${txn}` })
+    }
   }
   return json({ ok: true })
 }

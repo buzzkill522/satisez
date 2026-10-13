@@ -9,6 +9,7 @@ export type Currency = 'INR' | 'USD'
 export interface Pricing {
   launchDiscount: string
   plans: Record<Plan, { days: number } & Record<Currency, { list: number; price: number }>>
+  referral: { discountPercent: number; rewardDays: number }
 }
 
 export interface Billing {
@@ -21,6 +22,57 @@ export interface Billing {
   paddleClientToken: string | null
   paddleEnv: string
   paddlePrices: Record<Plan, string | null>
+  /** Paddle discount used for referral codes; without it, codes only apply to ₹ payments. */
+  paddleReferralDiscount: string | null
+}
+
+/** A referral code that checked out, and the % it takes off. */
+export interface Referral {
+  code: string
+  percent: number
+}
+
+/** Same rounding as the server (server/referral.js). */
+export const discounted = (price: number, percent: number, currency: Currency = 'INR') => {
+  const raw = price * (1 - percent / 100)
+  return Math.max(1, currency === 'INR' ? Math.round(raw) : Math.round(raw * 100) / 100)
+}
+
+const REF_KEY = 'satisez.ref'
+/** A code from a share link (#/upgrade?ref=CODE) is remembered until it's used. */
+export function rememberedCode(): string {
+  try {
+    const fromUrl = new URLSearchParams(window.location.hash.split('?')[1] ?? '').get('ref')
+    if (fromUrl) localStorage.setItem(REF_KEY, fromUrl.toUpperCase())
+    return localStorage.getItem(REF_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+export function forgetCode() {
+  try {
+    localStorage.removeItem(REF_KEY)
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export async function checkReferral(code: string): Promise<Referral> {
+  return postJson<Referral>('referral/check', { code })
+}
+
+export interface MyReferral {
+  code: string
+  percent: number
+  rewardDays: number
+  referrals: number
+  earnedDays: number
+}
+export async function loadMyReferral(): Promise<MyReferral> {
+  const res = await fetch(`${import.meta.env.BASE_URL}api/referral`, { cache: 'no-store' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`)
+  return data
 }
 
 let cached: Promise<Billing> | null = null
@@ -76,11 +128,11 @@ declare global {
  * completion (Paddle; premium is granted by Paddle's webhook a moment later). Rejects with a
  * readable message if the user closes the form or something fails.
  */
-export async function startCheckout(plan: Plan, currency: Currency, billing: Billing, user: User): Promise<void> {
+export async function startCheckout(plan: Plan, currency: Currency, billing: Billing, user: User, referral?: Referral | null): Promise<void> {
   if (currency === 'INR') {
     if (!billing.razorpay) throw new Error('Card and UPI payments in rupees are not switched on yet.')
     await loadScript('https://checkout.razorpay.com/v1/checkout.js')
-    const order = await postJson<{ orderId: string; amount: number; currency: string; keyId: string; email: string; name: string }>('checkout/razorpay', { plan })
+    const order = await postJson<{ orderId: string; amount: number; currency: string; keyId: string; email: string; name: string }>('checkout/razorpay', { plan, code: referral?.code })
     await new Promise<void>((resolve, reject) => {
       const rzp = new window.Razorpay!({
         key: order.keyId,
@@ -124,7 +176,8 @@ export async function startCheckout(plan: Plan, currency: Currency, billing: Bil
     Paddle.Checkout.open({
       items: [{ priceId: billing.paddlePrices[plan], quantity: 1 }],
       customer: { email: user.email },
-      customData: { email: user.email, plan },
+      ...(referral && billing.paddleReferralDiscount ? { discountId: billing.paddleReferralDiscount } : {}),
+      customData: { email: user.email, plan, ...(referral && billing.paddleReferralDiscount ? { ref: referral.code } : {}) },
       settings: { displayMode: 'overlay', theme: 'light' },
     })
   })

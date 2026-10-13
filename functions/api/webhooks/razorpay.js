@@ -2,6 +2,7 @@
 // browser verify step, e.g. if the user closed the tab). Event: payment.captured.
 
 import { grantPremium, hmacHex, json, setting, timingSafeEqual } from '../../../server/auth.js'
+import { rewardReferrer } from '../../../server/referral.js'
 import pricing from '../../../server/pricing.json'
 
 export async function onRequestPost({ request, env }) {
@@ -16,7 +17,10 @@ export async function onRequestPost({ request, env }) {
     const notes = payment.notes ?? {}
     const p = pricing.plans[notes.plan]
     // Keyed by payment ID: if the browser already confirmed this payment, nothing changes.
-    if (notes.email && p && payment.id) await grantPremium(env, notes.email, p.days, 'razorpay', payment.id)
+    if (notes.email && p && payment.id) {
+      await grantPremium(env, notes.email, p.days, 'razorpay', payment.id)
+      await rewardReferrer(env, { owner: notes.referrer, buyer: notes.email, paymentId: payment.id })
+    }
   }
   return json({ ok: true })
 }

@@ -964,3 +964,20 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
   .calc-bar { cursor: default; }
   .calc-grip, .calc-btn[aria-label*="xpand"], .calc-btn[aria-label*="hrink"] { display: none; }
 }
+
+/* ---------- Referral codes ---------- */
+.ref-toggle { margin: 1rem 0 0; padding: 0; font-weight: 700; }
+.ref-box { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin: 1rem 0 0; }
+.ref-box input { min-height: 44px; padding: .4rem .8rem; border: 2px solid var(--brand-100); border-radius: var(--radius-xl); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; letter-spacing: .06em; width: 200px; }
+.ref-box .error { flex-basis: 100%; margin: 0; }
+.ref-box.applied { justify-content: space-between; background: var(--grow-100); color: var(--grow-600); padding: .6rem .9rem; border-radius: var(--radius-xl); }
+.ref-box.applied b { font-family: var(--font-display); }
+.ref-card { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1.5rem; align-items: center; background: var(--surface); border: 2px dashed var(--gold-500); border-radius: var(--radius-3xl); padding: 1.5rem 1.75rem; margin: 2rem auto 0; max-width: 860px; }
+.ref-card h2 { margin: .25rem 0 .4rem; font-size: 24px; line-height: 30px; }
+.ref-card p { margin: 0; }
+.ref-share { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; min-width: 0; }
+.ref-code { display: flex; gap: .5rem; align-items: center; }
+.ref-code code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-display); font-weight: 900; font-size: 24px; letter-spacing: .12em; background: var(--gold-100); color: var(--ink); padding: .35rem .8rem; border-radius: var(--radius-xl); text-align: center; }
+.ref-code input { flex: 1; min-width: 0; min-height: 40px; padding: .4rem .7rem; border: 2px solid var(--brand-100); border-radius: var(--radius-xl); background: var(--paper); color: var(--ink); font: inherit; font-size: 14px; }
+.ref-code button { flex: none; white-space: nowrap; }
+@media (max-width: 720px) { .ref-card { grid-template-columns: minmax(0, 1fr); padding: 1.25rem; } .ref-code code { font-size: 20px; } }

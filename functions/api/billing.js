@@ -14,6 +14,8 @@ export function onRequestGet({ request, env }) {
     paddle: Boolean(setting(env, 'PADDLE_CLIENT_TOKEN') && setting(env, 'PADDLE_PRICE_MONTHLY') && setting(env, 'PADDLE_PRICE_YEARLY')),
     paddleClientToken: setting(env, 'PADDLE_CLIENT_TOKEN') || null,
     paddleEnv: setting(env, 'PADDLE_ENV') || 'production',
+    // Optional Paddle discount (set up in Paddle with the same % as pricing.referral) for referral codes.
+    paddleReferralDiscount: setting(env, 'PADDLE_REFERRAL_DISCOUNT_ID') || null,
     paddlePrices: { monthly: setting(env, 'PADDLE_PRICE_MONTHLY') || null, yearly: setting(env, 'PADDLE_PRICE_YEARLY') || null },
   })
 }

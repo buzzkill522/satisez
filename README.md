@@ -98,6 +98,13 @@ Prices live in `server/pricing.json` (regular price, launch price, days) — edi
   destination for `transaction.completed` pointing at `https://satisez.com/api/webhooks/paddle`.
   Premium is granted when that webhook arrives (usually within a few seconds).
 
+**Referral codes.** Every account gets a code (Upgrade page, with a share link
+`/#/upgrade?ref=CODE` that fills it in). A first-time buyer who enters a friend's code gets
+`referral.discountPercent` off (10%), and the code's owner gets `referral.rewardDays` of Premium
+(31) once the payment is confirmed; both numbers are in `server/pricing.json`. You can't use your
+own code, and each payment rewards once. Codes apply to ₹ payments; for $ payments create a
+percentage discount in Paddle with the same % and set its ID as `PADDLE_REFERRAL_DISCOUNT_ID`.
+
 Without accounts configured (no `SESSION_SECRET`), nothing is gated, so local `npm run dev` shows
 everything.
 

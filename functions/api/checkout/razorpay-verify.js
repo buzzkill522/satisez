@@ -7,6 +7,7 @@
 
 import { grantPremium, hmacHex, json, timingSafeEqual } from '../../../server/auth.js'
 import { razorpayApi, razorpayError, razorpayKeys } from '../../../server/razorpay.js'
+import { rewardReferrer } from '../../../server/referral.js'
 import pricing from '../../../server/pricing.json'
 
 export async function onRequestPost({ request, env, data }) {
@@ -30,5 +31,6 @@ export async function onRequestPost({ request, env, data }) {
   if (email.toLowerCase() !== data.user.email.toLowerCase()) return json({ error: 'This payment belongs to a different account.' }, 403)
 
   const until = await grantPremium(env, email, p.days, 'razorpay', paymentId)
+  await rewardReferrer(env, { owner: r.data.notes.referrer, buyer: email, paymentId })
   return json({ ok: true, until, plan })
 }

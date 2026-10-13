@@ -6,6 +6,7 @@ import { loadSection } from '../lib/data'
 import { latestByQuestion, useStore } from '../lib/store'
 import { DEFAULT_FILTERS, FilterPanel, applyFilters } from '../components/FilterPanel'
 import { QuestionView } from '../components/QuestionView'
+import { useCalculator } from '../components/Calculator'
 
 const PAGE = 50
 
@@ -19,6 +20,7 @@ export default function Browse() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const { attempts, flagged } = useStore()
+  const calc = useCalculator()
 
   useEffect(() => {
     setAll(null)
@@ -50,10 +52,14 @@ export default function Browse() {
           <button className="link" onClick={() => setOpen(null)}>← Back to list</button>
           <span className="muted">ID {openQ.id}</span>
           <span className="spacer" />
+          {openQ.section === 'math' && (
+            <button className={`link ${calc.open ? 'on' : ''}`} onClick={calc.toggle} aria-pressed={calc.open}>Calculator</button>
+          )}
           <button className="link" disabled={i <= 0} onClick={() => setOpen(list[i - 1].id)}>Prev</button>
           <button className="link" disabled={i < 0 || i >= list.length - 1} onClick={() => setOpen(list[i + 1].id)}>Next</button>
         </div>
         <QuestionView key={openQ.id} question={openQ} number={i + 1} instantFeedback />
+        {calc.panel}
       </div>
     )
   }

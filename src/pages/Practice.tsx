@@ -9,6 +9,7 @@ import { PracticeSetup, type Mode } from '../components/PracticeSetup'
 import { QuestionView } from '../components/QuestionView'
 import { Timer, formatTime } from '../components/Timer'
 import { DailyFive } from '../components/DailyFive'
+import { useCalculator } from '../components/Calculator'
 import { usePremium } from '../lib/auth'
 
 export default function Practice() {
@@ -98,6 +99,7 @@ export function Runner({ session, onExit, onAnswered }: RunnerProps) {
   const [results, setResults] = useState<Record<string, { answer: string; correct: boolean; seconds: number }>>({})
   const qStart = useRef(Date.now())
   const { flagged } = useStore()
+  const calc = useCalculator()
   const q = questions[idx]
   const section = questions[0]?.section ?? 'rw'
 
@@ -202,9 +204,9 @@ export function Runner({ session, onExit, onAnswered }: RunnerProps) {
         </div>
         <div className="bb-top-right">
           {section === 'math' && (
-            <a className="bb-tool" href="https://www.desmos.com/calculator" target="_blank" rel="noreferrer">
+            <button className={`bb-tool ${calc.open ? 'on' : ''}`} onClick={calc.toggle} aria-pressed={calc.open}>
               <span className="bb-tool-icon">▦</span>Calculator
-            </a>
+            </button>
           )}
           {section === 'math' && (
             <a
@@ -222,6 +224,7 @@ export function Runner({ session, onExit, onAnswered }: RunnerProps) {
         </div>
       </header>
       <div className="bb-practice-rule"><span>THIS IS A PRACTICE TEST</span></div>
+      {calc.panel}
 
       <main className="bb-main">
         <QuestionView key={q.id} question={q} number={idx + 1} instantFeedback={mode === 'practice'} onAnswer={onAnswer} />

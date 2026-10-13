@@ -942,3 +942,25 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 .ap-recent td.is-bad { color: var(--alert-600); font-weight: 800; }
 .danger-row { margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--brand-100); }
 @media (max-width: 640px) { .ap-facts, .ap-tiles { grid-template-columns: 1fr 1fr; } .admin-panel { padding: 1.25rem 1rem 3rem; } }
+
+/* ---------- Desmos calculator window ---------- */
+.bb-tool.on { color: var(--clay-500); }
+.bb-tool.on .bb-tool-icon { background: var(--gold-500); color: #161616; border-radius: 6px; padding: 0 .3rem; }
+.calc-panel { position: fixed; z-index: 30; width: 460px; height: 540px; min-width: 320px; min-height: 320px; max-width: calc(100vw - 24px); max-height: calc(100vh - 24px); display: flex; flex-direction: column; background: #fff; border: 1px solid #1e1e1e; border-radius: 10px; box-shadow: 0 18px 50px rgb(0 0 0 / 0.28); overflow: hidden; resize: both; }
+.calc-panel.expanded { width: min(900px, calc(100vw - 24px)); height: min(680px, calc(100vh - 24px)); }
+.calc-bar { display: flex; align-items: center; gap: .5rem; padding: .35rem .5rem .35rem .75rem; background: #1e1e1e; color: #fff; cursor: grab; user-select: none; touch-action: none; font-family: var(--font-sans); font-size: 14px; }
+.calc-panel.dragging .calc-bar { cursor: grabbing; }
+.calc-grip { opacity: .6; }
+.calc-spacer { flex: 1; }
+.calc-btn { min-height: 0; width: 30px; height: 30px; padding: 0; border: none; border-radius: 6px; background: transparent; color: #fff; font-size: 18px; line-height: 1; box-shadow: none; display: grid; place-items: center; }
+.calc-out { text-decoration: none; font-size: 15px; opacity: .7; }
+.calc-btn:hover { background: rgb(255 255 255 / 0.15); }
+.calc-body { position: relative; flex: 1; background: #fff; }
+.calc-body iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.calc-panel.dragging iframe { pointer-events: none; }
+.calc-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #5b5b58; font-size: 14px; }
+@media (max-width: 700px) {
+  .calc-panel, .calc-panel.expanded { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100%; max-width: 100%; height: 62vh; border-radius: 14px 14px 0 0; resize: none; }
+  .calc-bar { cursor: default; }
+  .calc-grip, .calc-btn[aria-label*="xpand"], .calc-btn[aria-label*="hrink"] { display: none; }
+}

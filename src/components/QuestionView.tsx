@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Question } from '../lib/types'
 import { DIFFICULTY_NAMES } from '../lib/types'
 import { checkSpr } from '../lib/data'
+import { answersFromRationale } from '../lib/spr'
 import { store, useStore } from '../lib/store'
 import { TutorChat } from './TutorChat'
 
@@ -53,8 +54,10 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
     setWhyOpen(false)
   }, [resetKey, q.id])
 
+  // A typed-answer question whose data has no answer: read it from the explanation instead.
+  const answers = q.type === 'spr' && !q.answers.length ? answersFromRationale(q.rationale) : q.answers
   const answer = q.type === 'spr' ? sprInput : selected
-  const isCorrect = q.type === 'spr' ? checkSpr(sprInput, q.answers) : q.answers.includes(selected)
+  const isCorrect = q.type === 'spr' ? checkSpr(sprInput, answers) : answers.includes(selected)
   const showResult = revealed || (submitted && instantFeedback)
   const locked = submitted || revealed
 
@@ -159,7 +162,7 @@ export function QuestionView({ question: q, number, instantFeedback, revealed, o
       </div>
       {showResult && (
         <div className="bb-spr-answer">
-          Correct answer{q.answers.length > 1 ? 's' : ''}: <b>{q.answers.join(', ')}</b>
+          Correct answer{answers.length > 1 ? 's' : ''}: <b>{answers.join(', ')}</b>
         </div>
       )}
     </div>

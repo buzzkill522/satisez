@@ -1,5 +1,6 @@
 // GET /api/auth/callback — Google redirects here after the user picks an account.
 
+import { recordSignup } from '../../../server/referral.js'
 import { cookie, getCookie, setting, getUser, isAdmin, json, newSessionPayload, putUser, sessionCookie, signSession } from '../../../server/auth.js'
 
 function decodeJwtPayload(jwt) {
@@ -16,8 +17,8 @@ export async function onRequestGet({ request, env }) {
   if (url.searchParams.get('error')) return backHome({ 'set-cookie': clearState }) // user cancelled
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
-  // The cookie holds `<state>|<next path>` (see login.js).
-  const [savedState, next = '/'] = (getCookie(request, 'oauth_state') || '').split('|')
+  // The cookie holds `<state>|<next path>|<referral code>` (see login.js).
+  const [savedState, next = '/', ref = ''] = (getCookie(request, 'oauth_state') || '').split('|')
   if (!code || !state || state !== savedState) {
     return json({ error: 'Sign-in expired or was tampered with. Go back and try again.' }, 400)
   }
@@ -70,6 +71,7 @@ export async function onRequestGet({ request, env }) {
     access: existing?.access ?? isAdmin(env, email),
   }
   await putUser(env, user)
+  if (!existing?.lastLogin && ref) await recordSignup(env, ref, email)
 
   const token = await signSession(newSessionPayload(user), setting(env, 'SESSION_SECRET'))
   // The app uses hash routes, so /upgrade becomes /#/upgrade.

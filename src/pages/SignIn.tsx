@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { GoogleButton } from '../components/AuthGate'
-import { refreshMe, useAuth } from '../lib/auth'
+import { refreshMe, savedReferral, useAuth } from '../lib/auth'
 
 type Tab = 'signin' | 'create'
 
@@ -38,7 +38,7 @@ export default function SignIn() {
       const res = await fetch(`${import.meta.env.BASE_URL}api/auth/${tab === 'create' ? 'register' : 'password'}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, ref: savedReferral() }),
       })
       const data = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) return setError(data.error || `Could not sign in (${res.status}).`)

@@ -13,6 +13,8 @@ export interface User {
   premium: boolean
   /** ISO date the paid period ends, if any. */
   premiumUntil: string | null
+  /** Admin-set joke screen, on until this account's first referral sign-up. */
+  prank?: boolean
 }
 
 interface AuthState {
@@ -74,8 +76,20 @@ export function usePremium(): { loading: boolean; premium: boolean } {
   return { loading, premium: !configured || Boolean(user?.premium) }
 }
 
+/** A referral code from a share link (saved by src/lib/billing.ts), so a new account credits it. */
+export function savedReferral(): string {
+  try {
+    return localStorage.getItem('satisez.ref') ?? ''
+  } catch {
+    return ''
+  }
+}
+
 export function signIn(next?: string) {
-  const q = next ? `?next=${encodeURIComponent(next)}` : ''
+  const params = new URLSearchParams()
+  if (next) params.set('next', next)
+  if (savedReferral()) params.set('ref', savedReferral())
+  const q = params.toString() ? `?${params}` : ''
   window.location.href = `${import.meta.env.BASE_URL}api/auth/login${q}`
 }
 

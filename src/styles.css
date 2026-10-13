@@ -985,3 +985,12 @@ a.card:hover { box-shadow: var(--shadow-lift); border-color: var(--brand-400); t
 .ref-customize { justify-self: start; padding: 0; font-weight: 700; }
 .ref-edit input { font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .1em; text-transform: uppercase; }
 .ref-share .error { margin: 0; }
+
+/* Joke screen (admin-set, see PrankScreen.tsx) */
+.prank { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; padding: 2rem 1rem; text-align: center; background: var(--paper); }
+.prank h1 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: clamp(40px, 9vw, 112px); line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; color: var(--ink); }
+.prank p { margin: 0; max-width: 560px; font-size: 18px; color: var(--muted-ink); }
+.prank-share { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: center; max-width: 100%; }
+.prank-share span { font-weight: 700; }
+.prank-share code { background: var(--gold-100); padding: .35rem .7rem; border-radius: var(--radius-xl); font-size: 14px; overflow-wrap: anywhere; max-width: 100%; }
+.prank-out { margin-top: 1rem; }

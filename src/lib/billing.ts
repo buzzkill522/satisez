@@ -66,6 +66,8 @@ export interface MyReferral {
   percent: number
   rewardDays: number
   referrals: number
+  /** New accounts that signed up through this person's link. */
+  signups: number
   earnedDays: number
   /** Premium members can choose their own code. */
   canCustomize: boolean

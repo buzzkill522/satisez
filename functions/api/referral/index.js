@@ -18,6 +18,7 @@ export async function onRequestGet({ env, data }) {
     percent: pricing.referral.discountPercent,
     rewardDays: pricing.referral.rewardDays,
     referrals,
+    signups: user?.signups?.length ?? 0,
     earnedDays: referrals * pricing.referral.rewardDays,
     canCustomize: Boolean(data.user.premium),
     codesLeft: Math.max(0, MAX_CODES - used),

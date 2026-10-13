@@ -12,6 +12,7 @@ import { RequireAdmin } from './components/AuthGate'
 import { RequirePremium } from './components/Paywall'
 import { signOut, useAuth, usePremium } from './lib/auth'
 import { useProgressSync } from './lib/sync'
+import { PrankScreen } from './components/PrankScreen'
 
 type Theme = 'light' | 'dark'
 const THEME_KEY = 'satisez.theme'
@@ -40,6 +41,7 @@ export default function App() {
   const { user } = useAuth()
   const { loading, premium } = usePremium()
   useProgressSync()
+  if (user?.prank) return <PrankScreen />
   return (
     <HashRouter>
       <nav className="topnav">

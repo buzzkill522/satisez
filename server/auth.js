@@ -114,6 +114,8 @@ export async function currentUser(request, env) {
     // Premium: admins always; otherwise a paid period that hasn't ended yet.
     premium: admin || isPremium(record),
     premiumUntil: record?.premium?.until ?? null,
+    // Admin-set joke screen; switches itself off at the first referral sign-up (or paid referral).
+    prank: Boolean(record?.prank) && !record?.signups?.length && !record?.referrals?.length,
   }
 }
 

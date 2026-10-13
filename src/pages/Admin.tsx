@@ -16,6 +16,9 @@ interface AdminUser {
   lifetime: boolean
   answered?: number
   lastActive?: number | null
+  prank?: boolean
+  signups?: number
+  paidReferrals?: number
 }
 
 interface Summary {
@@ -500,6 +503,18 @@ function UserPanel({ email, me, onClose, onChanged }: { email: string; me: { ema
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" />
                 <button disabled={Boolean(busy) || !name.trim() || name === u.name} onClick={() => act('name', { action: 'name', name }, `Renamed to ${name}.`)}>Rename</button>
               </div>
+              <p className="muted small">Referrals: {u.signups ?? 0} sign-up{u.signups === 1 ? '' : 's'} · {u.paidReferrals ?? 0} paid</p>
+              {!u.owner && !self && (
+                <div className="ap-row">
+                  <span className="small">{u.prank ? (u.signups || u.paidReferrals ? '“Idiot” screen: on, but already cleared by a referral sign-up.' : '“Idiot” screen: showing until their first referral sign-up.') : '“Idiot” screen: off.'}</span>
+                  <button
+                    disabled={Boolean(busy)}
+                    onClick={() => act('prank', { action: 'prank', value: !u.prank }, u.prank ? `Idiot screen off for ${u.email}.` : `Idiot screen on for ${u.email}.`)}
+                  >
+                    {u.prank ? 'Turn off' : 'Turn on'}
+                  </button>
+                </div>
+              )}
               {(!u.owner || self) && (
                 <div className="ap-row">
                   <input type="text" placeholder="New password (8+ characters)" value={password} onChange={(e) => setPassword(e.target.value)} aria-label="New password" autoComplete="off" />

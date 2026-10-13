@@ -90,3 +90,20 @@ export async function setCustomCode(env, email, raw) {
   await putUser(env, { ...user, refCode: code, refCodes: [...new Set([...codes, code])] })
   return { ok: true, code }
 }
+
+/**
+ * A brand-new account arrived through someone's referral link: note it on the code's owner
+ * (`signups`) and on the new account (`referredBy`). Paid referrals are tracked separately.
+ */
+export async function recordSignup(env, rawCode, newEmail) {
+  const code = normalizeCode(rawCode)
+  if (!code || !newEmail) return
+  const owner = await env.USERS.get(`ref:${code}`)
+  if (!owner || owner.toLowerCase() === newEmail.toLowerCase()) return
+  const record = await getUser(env, owner)
+  if (!record || record.signups?.some((x) => x.email === newEmail.toLowerCase())) return
+  const signups = [{ email: newEmail.toLowerCase(), at: new Date().toISOString(), code }, ...(record.signups ?? [])].slice(0, 500)
+  await putUser(env, { ...record, signups })
+  const fresh = await getUser(env, newEmail)
+  if (fresh && !fresh.referredBy) await putUser(env, { ...fresh, referredBy: code })
+}

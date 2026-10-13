@@ -10,6 +10,7 @@
 //   block          { value: boolean }   block or unblock sign-in
 //   password       { password }         set a new password (≥ 8 characters)
 //   name           { name }             rename
+//   prank          { value: boolean }   joke screen until their first referral sign-up
 //   create         { name?, days?, lifetime? }  add an account by email (optionally with Premium)
 //   delete                              remove the account and its saved progress
 //
@@ -44,6 +45,9 @@ function view(env, u) {
     premium: u.premium ?? null,
     premiumActive: owner || isPremium(u),
     lifetime: u.premium?.until === LIFETIME_UNTIL,
+    prank: Boolean(u.prank),
+    signups: u.signups?.length ?? 0,
+    paidReferrals: u.referrals?.length ?? 0,
   }
 }
 
@@ -194,6 +198,12 @@ export async function onRequestPost({ request, env, data }) {
         if (owner && !self) return json({ error: 'Owners change their own password.' }, 400)
         await putUser(env, { ...user, password: await hashPassword(password) })
         await log('set a new password')
+        return json({ ok: true })
+      }
+      case 'prank': {
+        if (owner || self) return json({ error: owner ? 'Not on owners.' : 'Not on yourself.' }, 400)
+        await putUser(env, { ...user, prank: Boolean(body.value) || undefined })
+        await log(body.value ? 'turned on the idiot screen' : 'turned off the idiot screen')
         return json({ ok: true })
       }
       case 'name': {

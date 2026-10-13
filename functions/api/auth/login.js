@@ -12,6 +12,8 @@ export async function onRequestGet({ request, env }) {
   // Where to land afterwards (a hash route like /upgrade); only same-site paths are accepted.
   const next = url.searchParams.get('next') || '/'
   const safeNext = /^\/[^/\\]/.test(next) || next === '/' ? next : '/'
+  // Referral code from a share link, credited if this turns out to be a new account.
+  const ref = (url.searchParams.get('ref') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16)
   const params = new URLSearchParams({
     client_id: setting(env, 'GOOGLE_CLIENT_ID'),
     redirect_uri: `${origin}/api/auth/callback`,
@@ -25,7 +27,7 @@ export async function onRequestGet({ request, env }) {
     headers: {
       location: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
       // Checked in the callback to make sure the response belongs to this browser's sign-in.
-      'set-cookie': cookie('oauth_state', `${state}|${safeNext}`, { maxAge: 600, path: '/api/auth' }),
+      'set-cookie': cookie('oauth_state', `${state}|${safeNext}|${ref}`, { maxAge: 600, path: '/api/auth' }),
     },
   })
 }

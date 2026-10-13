@@ -1,5 +1,6 @@
 // POST /api/auth/register {email, password, name} — create an email+password account and sign in.
 
+import { recordSignup } from '../../../server/referral.js'
 import { emailAuthReady, getUser, hashPassword, isAdmin, json, newSessionPayload, putUser, sessionCookie, setting, signSession, validEmail } from '../../../server/auth.js'
 
 export async function onRequestPost({ request, env }) {
@@ -26,6 +27,8 @@ export async function onRequestPost({ request, env }) {
     password: await hashPassword(password),
   }
   await putUser(env, user)
+  // First sign-in for this email, arriving through a referral link: credit the referrer.
+  if (!existing?.lastLogin && body.ref) await recordSignup(env, body.ref, email)
   const token = await signSession(newSessionPayload(user), setting(env, 'SESSION_SECRET'))
   return json({ ok: true }, 200, { 'set-cookie': sessionCookie(token) })
 }
